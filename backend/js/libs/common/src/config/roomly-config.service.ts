@@ -3,6 +3,7 @@ import { ConfigService as NestConfigService } from '@nestjs/config';
 import { DEFAULT_PORTS } from '../constants';
 import type {
   AuthConfig,
+  AuthSigningConfig,
   GatewayConfig,
   PostgresConfig,
   RabbitmqConfig,
@@ -42,9 +43,22 @@ export class RoomlyConfigService {
     return this.config.getOrThrow<ServicesConfig>('services');
   }
 
-  /** Loaded only if `load` includes `'auth'` */
+  /** Loaded only if `load` includes `'auth'` (no private key) */
   get auth(): AuthConfig {
-    return this.config.getOrThrow<AuthConfig>('auth');
+    const auth = this.config.getOrThrow<AuthConfig>('auth');
+    if (auth.jwksUri) {
+      return auth;
+    }
+    const base = this.services.userServiceUrl.replace(/\/$/, '');
+    return {
+      ...auth,
+      jwksUri: `${base}/.well-known/jwks.json`,
+    };
+  }
+
+  /** Loaded only if `load` includes `'authSigning'` (user-service) */
+  get authSigning(): AuthSigningConfig {
+    return this.config.getOrThrow<AuthSigningConfig>('authSigning');
   }
 
   /** Loaded only if `load` includes `'gateway'` */

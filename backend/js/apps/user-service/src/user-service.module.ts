@@ -5,7 +5,7 @@ import { HttpModule } from './adapters/inbound/http/http.module';
 @Module({
   imports: [
     RoomlyConfigModule.forRoot({
-      load: ['services', 'auth', 'postgres', 'redis', 'rabbitmq'],
+      load: ['services', 'auth', 'authSigning', 'postgres', 'redis', 'rabbitmq'],
     }),
     HealthModule,
     HttpModule,

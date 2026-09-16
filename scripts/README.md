@@ -5,6 +5,7 @@
 ```bash
 npm run up            # infra + Nest services
 npm run dev           # hot-reload
+npm run auth:keys     # local JWT RSA private key (once)
 npm run infra         # лише postgres / redis / rabbitmq
 npm run down
 npm run logs -- gateway

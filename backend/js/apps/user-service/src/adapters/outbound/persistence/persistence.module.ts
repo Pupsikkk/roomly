@@ -10,6 +10,7 @@ import { UserTypeOrmRepository } from './typeorm/user/user.typeorm-repository';
     RoomlyTypeOrmModule.forRoot({
       database: 'user',
       entities: [UserOrmEntity],
+      logging: false,
     }),
     TypeOrmModule.forFeature([UserOrmEntity]),
   ],

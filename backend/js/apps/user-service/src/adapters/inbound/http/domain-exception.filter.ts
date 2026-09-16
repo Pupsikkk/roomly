@@ -5,17 +5,29 @@ import {
   ExceptionFilter,
   HttpException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import {
+  InvalidCredentialsError,
+  InvalidRefreshTokenError,
   UserAlreadyExistsError,
   UserNotFoundError,
 } from '../../../domain';
 
-@Catch(UserAlreadyExistsError, UserNotFoundError)
+@Catch(
+  UserAlreadyExistsError,
+  UserNotFoundError,
+  InvalidCredentialsError,
+  InvalidRefreshTokenError,
+)
 export class DomainExceptionFilter implements ExceptionFilter {
   catch(
-    exception: UserAlreadyExistsError | UserNotFoundError,
+    exception:
+      | UserAlreadyExistsError
+      | UserNotFoundError
+      | InvalidCredentialsError
+      | InvalidRefreshTokenError,
     host: ArgumentsHost,
   ) {
     const response = host.switchToHttp().getResponse<Response>();
@@ -33,6 +45,12 @@ export class DomainExceptionFilter implements ExceptionFilter {
   private toHttpException(exception: Error): HttpException {
     if (exception instanceof UserAlreadyExistsError) {
       return new ConflictException(exception.message);
+    }
+    if (
+      exception instanceof InvalidCredentialsError ||
+      exception instanceof InvalidRefreshTokenError
+    ) {
+      return new UnauthorizedException(exception.message);
     }
     if (exception instanceof UserNotFoundError) {
       return new NotFoundException(exception.message);

@@ -35,9 +35,34 @@ export interface ServicesConfig {
   bookingServiceUrl: string;
 }
 
+/** Shared JWT contract — safe for gateway (verify) and user-service (sign). */
 export interface AuthConfig {
-  jwtSecret: string;
+  /** JWT `iss` claim */
+  jwtIssuer: string;
+  /** JWT `aud` claim */
+  jwtAudience: string;
+  /**
+   * JWKS URL for verifiers (gateway).
+   * Empty → resolved to `${USER_SERVICE_URL}/.well-known/jwks.json`.
+   */
+  jwksUri: string;
+}
+
+/** Signing secrets — load only in user-service (`authSigning`). */
+export interface AuthSigningConfig {
+  /** Access-token TTL for jose `setExpirationTime` (e.g. `15m`, `7d`) */
   jwtExpiresIn: string;
+  /** Opaque refresh-token TTL (e.g. `30d`) */
+  jwtRefreshExpiresIn: string;
+  /** `kid` in JWK / JWT header */
+  jwtKeyId: string;
+  /**
+   * PEM private key. Prefer `jwtPrivateKeyPath`.
+   * Supports literal `\n` escapes from env.
+   */
+  jwtPrivateKeyPem: string;
+  /** Path to PEM private key file (takes precedence over pem) */
+  jwtPrivateKeyPath: string;
 }
 
 export interface GatewayConfig {
@@ -47,6 +72,10 @@ export interface GatewayConfig {
   throttleTtlMs: number;
   /** Max requests per window per IP */
   throttleLimit: number;
+  /** httpOnly auth cookies: Secure flag (default: production) */
+  cookieSecure: boolean;
+  /** SameSite for auth cookies */
+  cookieSameSite: 'lax' | 'strict' | 'none';
 }
 
 export const postgresConfig = registerAs(
@@ -106,8 +135,20 @@ export const servicesConfig = registerAs(
 export const authConfig = registerAs(
   'auth',
   (): AuthConfig => ({
-    jwtSecret: env('JWT_SECRET', 'roomly-dev-secret-change-me'),
-    jwtExpiresIn: env('JWT_EXPIRES_IN', '7d'),
+    jwtIssuer: env('JWT_ISSUER', 'roomly-user-service'),
+    jwtAudience: env('JWT_AUDIENCE', 'roomly-gateway'),
+    jwksUri: env('JWKS_URI', ''),
+  }),
+);
+
+export const authSigningConfig = registerAs(
+  'authSigning',
+  (): AuthSigningConfig => ({
+    jwtExpiresIn: env('JWT_EXPIRES_IN', '15m'),
+    jwtRefreshExpiresIn: env('JWT_REFRESH_EXPIRES_IN', '30d'),
+    jwtKeyId: env('JWT_KEY_ID', 'roomly-dev-1'),
+    jwtPrivateKeyPem: env('JWT_PRIVATE_KEY', ''),
+    jwtPrivateKeyPath: env('JWT_PRIVATE_KEY_PATH', ''),
   }),
 );
 
@@ -120,8 +161,21 @@ export const gatewayConfig = registerAs(
       .filter(Boolean),
     throttleTtlMs: envInt('THROTTLE_TTL_MS', 60_000),
     throttleLimit: envInt('THROTTLE_LIMIT', 100),
+    cookieSecure:
+      env('COOKIE_SECURE', '') === 'true' ||
+      (env('COOKIE_SECURE', '') === '' &&
+        env('NODE_ENV', 'development') === 'production'),
+    cookieSameSite: parseSameSite(env('COOKIE_SAME_SITE', 'lax')),
   }),
 );
+
+function parseSameSite(value: string): 'lax' | 'strict' | 'none' {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'strict' || normalized === 'none' || normalized === 'lax') {
+    return normalized;
+  }
+  return 'lax';
+}
 
 /** Named env namespaces available via RoomlyConfigModule.forRoot({ load }) */
 export const CONFIG_NAMESPACES = {
@@ -130,6 +184,7 @@ export const CONFIG_NAMESPACES = {
   rabbitmq: rabbitmqConfig,
   services: servicesConfig,
   auth: authConfig,
+  authSigning: authSigningConfig,
   gateway: gatewayConfig,
 } as const;
 

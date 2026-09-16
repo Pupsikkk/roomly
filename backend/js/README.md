@@ -50,9 +50,9 @@ docker compose -f infra/docker-compose.yml -f infra/docker-compose.dev.yml up --
 
 | Сервіс | `APP` | порт |
 |---|---|---|
-| gateway | `gateway` | 3000 |
-| user-service | `user-service` | 3001 |
-| notification-service | `notification-service` | 3002 |
+| gateway | `gateway` | 3000 (єдиний опублікований на хост) |
+| user-service | `user-service` | 3001 (лише Docker network) |
+| notification-service | `notification-service` | 3002 (лише Docker network) |
 
 ## Env
 
@@ -61,7 +61,12 @@ docker compose -f infra/docker-compose.yml -f infra/docker-compose.dev.yml up --
 - порти: `GATEWAY_PORT`, `USER_SERVICE_PORT`, `NOTIFICATION_SERVICE_PORT`
 - БД: `USER_DB_NAME`, `POSTGRES_HOST`, `POSTGRES_USER`, …
 - у коді: `RoomlyConfigModule.forRoot({ load: ['services', 'auth', ...] })`
-  namespaces: `postgres` | `redis` | `rabbitmq` | `services` | `auth`
+  namespaces: `postgres` | `redis` | `rabbitmq` | `services` | `auth` | `authSigning` | `gateway`
+- Auth (RS256): `auth` — issuer/audience/JWKS (gateway + user-service);
+  `authSigning` — private key / kid / TTL (**лише user-service**).
+  JWKS — `GET /.well-known/jwks.json`.
+  Local key: `npm run auth:keys` → `infra/secrets/dev/jwt-private.pem` (gitignored;
+  also auto-created on `npm run up` / `dev`).
 
 Init SQL (`infra/postgres/init/`) хардкодить імена БД — вони мають збігатися з `infra/.env`.
 

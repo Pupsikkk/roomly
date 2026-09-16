@@ -9,6 +9,9 @@ infra/redis/data/**
 infra/rabbitmq/data/**
 !infra/rabbitmq/data/.gitkeep
 
+# Dev JWT signing keys (generate locally: npm run auth:keys)
+infra/secrets/**/*.pem
+
 .DS_Store
 node_modules/
 dist/

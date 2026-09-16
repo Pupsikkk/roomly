@@ -21,6 +21,9 @@ services:
       NOTIFICATION_SERVICE_URL: http://notification-service:${NOTIFICATION_SERVICE_PORT:-3002}
       HOTEL_SERVICE_URL: http://hotel-service:${HOTEL_SERVICE_PORT:-8000}
       BOOKING_SERVICE_URL: http://booking-service:${BOOKING_SERVICE_PORT:-8001}
+      # Never load signing secrets into gateway (env_file would otherwise inject them)
+      JWT_PRIVATE_KEY: ""
+      JWT_PRIVATE_KEY_PATH: ""
     ports:
       - "${GATEWAY_PORT:-3000}:${GATEWAY_PORT:-3000}"
     volumes:
@@ -60,11 +63,12 @@ services:
       REDIS_HOST: redis
       RABBITMQ_HOST: rabbitmq
       USER_DB_NAME: ${USER_DB_NAME:-user_db}
-    ports:
-      - "${USER_SERVICE_PORT:-3001}:${USER_SERVICE_PORT:-3001}"
+      # Private key stays on user-service only (not mounted on gateway)
+      JWT_PRIVATE_KEY_PATH: /run/secrets/jwt/jwt-private.pem
     volumes:
       - ../backend/js:/app
       - user_node_modules:/app/node_modules
+      - ./secrets/dev:/run/secrets/jwt:ro
     depends_on:
       gateway:
         condition: service_started
@@ -81,8 +85,6 @@ services:
       PORT: ${NOTIFICATION_SERVICE_PORT:-3002}
       NODE_ENV: development
       RABBITMQ_HOST: rabbitmq
-    ports:
-      - "${NOTIFICATION_SERVICE_PORT:-3002}:${NOTIFICATION_SERVICE_PORT:-3002}"
     volumes:
       - ../backend/js:/app
       - notification_node_modules:/app/node_modules

@@ -8,15 +8,20 @@ import {
   RoomlyConfigService,
 } from '@roomly/common';
 import { RedisClientService, RedisModule } from '@roomly/infra';
+import { AuthController } from './auth/auth.controller';
+import { AuthHttpClient } from './auth/auth-http.client';
+import { AuthModule } from './auth/auth.module';
+import { UserServiceHttp } from './http/user-service.http';
 import { UserHttpClient } from './user/user-http.client';
 import { UsersController } from './user/users.controller';
 
 @Module({
   imports: [
     RoomlyConfigModule.forRoot({
-      load: ['services', 'gateway', 'redis'],
+      load: ['services', 'gateway', 'redis', 'auth'],
     }),
     HealthModule,
+    AuthModule,
     RedisModule.forRoot({
       isGlobal: true,
       keyPrefix: 'gateway:',
@@ -40,9 +45,11 @@ import { UsersController } from './user/users.controller';
       }),
     }),
   ],
-  controllers: [UsersController],
+  controllers: [UsersController, AuthController],
   providers: [
+    UserServiceHttp,
     UserHttpClient,
+    AuthHttpClient,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

@@ -10,6 +10,7 @@
     "build:apps": "node scripts/roomly.mjs build",
     "logs": "node scripts/roomly.mjs logs",
     "ps": "node scripts/roomly.mjs ps",
+    "auth:keys": "node scripts/generate-jwt-keys.mjs",
     "roomly": "node scripts/roomly.mjs"
   }
 }

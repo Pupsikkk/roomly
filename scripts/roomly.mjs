@@ -14,6 +14,7 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ensureDevJwtPrivateKey } from './generate-jwt-keys.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -54,6 +55,7 @@ function ensureEnv() {
     console.log('Created infra/.env from infra/.env.example');
   }
   loadEnvFile(ENV_FILE);
+  ensureDevJwtPrivateKey();
 }
 
 function composeArgs(extraFiles = []) {
@@ -97,9 +99,9 @@ function cmdUp() {
   console.log('');
   console.log('Roomly is up (prod mode)');
   console.log(`  Gateway:       http://localhost:${env('GATEWAY_PORT', '3000')}`);
-  console.log(`  User service:  http://localhost:${env('USER_SERVICE_PORT', '3001')}`);
-  console.log(`  Notification:  http://localhost:${env('NOTIFICATION_SERVICE_PORT', '3002')}`);
+  console.log(`  Swagger:       http://localhost:${env('GATEWAY_PORT', '3000')}/docs`);
   console.log(`  RabbitMQ UI:   http://localhost:${env('RABBITMQ_MGMT_PORT', '15672')}`);
+  console.log('  (user / notification — internal only, no host ports)');
 }
 
 function cmdDev() {
@@ -139,6 +141,7 @@ function cmdHelp() {
 
   npm run up          start infra + Nest services (detached, prod image)
   npm run dev         hot-reload (infra/docker-compose.dev.yml)
+  npm run auth:keys   generate local JWT RSA private key (once; skip if exists)
   npm run infra       only postgres, redis, rabbitmq
   npm run down        stop all services
   npm run build:apps  rebuild Nest image (gateway)
