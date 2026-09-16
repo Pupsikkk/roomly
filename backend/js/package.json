@@ -23,6 +23,11 @@
     "start:prod:gateway": "node dist/apps/gateway/main",
     "start:prod:user": "node dist/apps/user-service/main",
     "start:prod:notification": "node dist/apps/notification-service/main",
+    "typeorm": "TS_NODE_PROJECT=tsconfig.typeorm.json typeorm-ts-node-commonjs",
+    "migration:run:user": "npm run typeorm -- migration:run -d apps/user-service/src/adapters/outbound/persistence/typeorm/data-source.ts",
+    "migration:revert:user": "npm run typeorm -- migration:revert -d apps/user-service/src/adapters/outbound/persistence/typeorm/data-source.ts",
+    "migration:show:user": "npm run typeorm -- migration:show -d apps/user-service/src/adapters/outbound/persistence/typeorm/data-source.ts",
+    "migration:generate:user": "npm run typeorm -- migration:generate apps/user-service/src/adapters/outbound/persistence/typeorm/migrations/Migration -d apps/user-service/src/adapters/outbound/persistence/typeorm/data-source.ts",
     "lint": "eslint \"{apps,libs}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -30,12 +35,26 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand"
   },
   "dependencies": {
+    "@nest-lab/throttler-storage-redis": "^1.2.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^12.0.0",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/swagger": "^11.4.7",
+    "@nestjs/throttler": "^6.5.0",
+    "@nestjs/typeorm": "^11.0.3",
+    "amqplib": "^2.0.1",
+    "bcrypt": "^6.0.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "dotenv": "^17.4.2",
+    "helmet": "^8.3.0",
+    "ioredis": "^5.11.1",
+    "pg": "^8.23.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "swagger-ui-express": "^5.0.1",
+    "typeorm": "^0.3.27"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -43,10 +62,14 @@
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.1",
+    "@types/amqplib": "^0.10.8",
+    "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.0.0",
+    "@types/pg": "^8.23.1",
     "@types/supertest": "^7.0.0",
+    "@types/swagger-ui-express": "^4.1.8",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
@@ -83,7 +106,9 @@
       "<rootDir>/libs/"
     ],
     "moduleNameMapper": {
-      "^@roomly/common(.*)$": "<rootDir>/libs/common/src$1"
+      "^@roomly/common(.*)$": "<rootDir>/libs/common/src$1",
+      "^@roomly/infra(.*)$": "<rootDir>/libs/infra/src$1",
+      "^@roomly/contracts(.*)$": "<rootDir>/libs/contracts/src$1"
     }
   }
 }

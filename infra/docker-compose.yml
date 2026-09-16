@@ -74,6 +74,23 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  # One-shot: apply user_db migrations before user-service replicas start
+  user-migrate:
+    image: roomly-js:local
+    pull_policy: never
+    env_file: .env
+    environment:
+      APP: user-migrate
+      NODE_ENV: production
+      POSTGRES_HOST: postgres
+      USER_DB_NAME: ${USER_DB_NAME:-user_db}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      gateway:
+        condition: service_started
+    restart: "no"
+
   # Same image as gateway — build only once (gateway), then reuse
   user-service:
     image: roomly-js:local
@@ -85,15 +102,20 @@ services:
       NODE_ENV: production
       POSTGRES_HOST: postgres
       REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
       USER_DB_NAME: ${USER_DB_NAME:-user_db}
     ports:
       - "${USER_SERVICE_PORT:-3001}:${USER_SERVICE_PORT:-3001}"
     depends_on:
       gateway:
         condition: service_started
+      user-migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
   notification-service:

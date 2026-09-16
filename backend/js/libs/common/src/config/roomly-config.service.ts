@@ -3,6 +3,7 @@ import { ConfigService as NestConfigService } from '@nestjs/config';
 import { DEFAULT_PORTS } from '../constants';
 import type {
   AuthConfig,
+  GatewayConfig,
   PostgresConfig,
   RabbitmqConfig,
   RedisConfig,
@@ -44,6 +45,11 @@ export class RoomlyConfigService {
   /** Loaded only if `load` includes `'auth'` */
   get auth(): AuthConfig {
     return this.config.getOrThrow<AuthConfig>('auth');
+  }
+
+  /** Loaded only if `load` includes `'gateway'` */
+  get gateway(): GatewayConfig {
+    return this.config.getOrThrow<GatewayConfig>('gateway');
   }
 
   /** Compose `PORT` wins over service-specific env (for Docker). */

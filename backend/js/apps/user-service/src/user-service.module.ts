@@ -1,16 +1,14 @@
 import { Module } from '@nestjs/common';
 import { HealthModule, RoomlyConfigModule } from '@roomly/common';
-import { UserServiceController } from './user-service.controller';
-import { UserServiceService } from './user-service.service';
+import { HttpModule } from './adapters/inbound/http/http.module';
 
 @Module({
   imports: [
     RoomlyConfigModule.forRoot({
-      load: ['services', 'auth', 'postgres', 'redis'],
+      load: ['services', 'auth', 'postgres', 'redis', 'rabbitmq'],
     }),
     HealthModule,
+    HttpModule,
   ],
-  controllers: [UserServiceController],
-  providers: [UserServiceService],
 })
 export class UserServiceModule {}

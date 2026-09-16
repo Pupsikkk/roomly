@@ -5,16 +5,15 @@
 ```text
 apps/
   gateway/                 # :3000
-  user-service/            # :3001
+  user-service/            # :3001 · hex (domain / application / adapters)
   notification-service/    # :3002
 libs/
-  common/src/              # @roomly/common
-    config/                # RoomlyConfigModule / env
-    db/                    # DbModule, postgres URL helpers
-    errors/                # AppException, AllExceptionsFilter
-    health/                # HealthModule
-    constants/
-    index.ts
+  common/src/              # @roomly/common — config, health, constants
+  infra/src/               # @roomly/infra — connect helpers
+  contracts/src/           # @roomly/contracts — events + HTTP shapes
+    db/
+    redis/
+    rabbit/
 ```
 
 ## Commands

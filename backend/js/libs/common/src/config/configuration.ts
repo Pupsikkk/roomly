@@ -40,6 +40,15 @@ export interface AuthConfig {
   jwtExpiresIn: string;
 }
 
+export interface GatewayConfig {
+  /** Comma-separated origins; `*` = reflect any (dev-friendly) */
+  corsOrigins: string[];
+  /** Rate limit window in milliseconds */
+  throttleTtlMs: number;
+  /** Max requests per window per IP */
+  throttleLimit: number;
+}
+
 export const postgresConfig = registerAs(
   'postgres',
   (): PostgresConfig => ({
@@ -102,6 +111,18 @@ export const authConfig = registerAs(
   }),
 );
 
+export const gatewayConfig = registerAs(
+  'gateway',
+  (): GatewayConfig => ({
+    corsOrigins: env('CORS_ORIGINS', '*')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+    throttleTtlMs: envInt('THROTTLE_TTL_MS', 60_000),
+    throttleLimit: envInt('THROTTLE_LIMIT', 100),
+  }),
+);
+
 /** Named env namespaces available via RoomlyConfigModule.forRoot({ load }) */
 export const CONFIG_NAMESPACES = {
   postgres: postgresConfig,
@@ -109,6 +130,7 @@ export const CONFIG_NAMESPACES = {
   rabbitmq: rabbitmqConfig,
   services: servicesConfig,
   auth: authConfig,
+  gateway: gatewayConfig,
 } as const;
 
 export type ConfigNamespace = keyof typeof CONFIG_NAMESPACES;

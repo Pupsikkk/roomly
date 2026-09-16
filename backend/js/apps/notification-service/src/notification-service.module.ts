@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { HealthModule, RoomlyConfigModule } from '@roomly/common';
-import { NotificationServiceController } from './notification-service.controller';
-import { NotificationServiceService } from './notification-service.service';
+import { EventsModule } from './adapters/inbound/events/events.module';
 
 @Module({
   imports: [
@@ -9,8 +8,7 @@ import { NotificationServiceService } from './notification-service.service';
       load: ['services', 'rabbitmq'],
     }),
     HealthModule,
+    EventsModule,
   ],
-  controllers: [NotificationServiceController],
-  providers: [NotificationServiceService],
 })
 export class NotificationServiceModule {}
