@@ -1,10 +1,12 @@
 import { NestFactory } from '@nestjs/core';
-import { resolvePort } from '@roomly/common';
+import { AllExceptionsFilter, RoomlyConfigService } from '@roomly/common';
 import { UserServiceModule } from './user-service.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(UserServiceModule);
-  const port = resolvePort('user', 'USER_SERVICE_PORT');
+  app.useGlobalFilters(new AllExceptionsFilter());
+  const config = app.get(RoomlyConfigService);
+  const port = config.port.user;
   await app.listen(port);
   console.log(`user-service listening on ${port}`);
 }

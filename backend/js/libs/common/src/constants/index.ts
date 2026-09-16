@@ -5,9 +5,10 @@ export const DEFAULT_PORTS = {
   notification: 3002,
 } as const;
 
-/** @deprecated use resolvePort() */
+/** @deprecated use RoomlyConfigService.resolveServicePort() */
 export const SERVICE_PORTS = DEFAULT_PORTS;
 
+/** @deprecated use RoomlyConfigService */
 export function resolvePort(
   service: keyof typeof DEFAULT_PORTS,
   portEnvKey: string,

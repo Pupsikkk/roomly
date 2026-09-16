@@ -8,7 +8,13 @@ apps/
   user-service/            # :3001
   notification-service/    # :3002
 libs/
-  common/                  # @roomly/common (health, shared constants)
+  common/src/              # @roomly/common
+    config/                # RoomlyConfigModule / env
+    db/                    # DbModule, postgres URL helpers
+    errors/                # AppException, AllExceptionsFilter
+    health/                # HealthModule
+    constants/
+    index.ts
 ```
 
 ## Commands
@@ -55,7 +61,8 @@ docker compose -f infra/docker-compose.yml -f infra/docker-compose.dev.yml up --
 
 - порти: `GATEWAY_PORT`, `USER_SERVICE_PORT`, `NOTIFICATION_SERVICE_PORT`
 - БД: `USER_DB_NAME`, `POSTGRES_HOST`, `POSTGRES_USER`, …
-- у коді: `resolvePort()`, `getUserDbConfig()` з `@roomly/common`
+- у коді: `RoomlyConfigModule.forRoot({ load: ['services', 'auth', ...] })`
+  namespaces: `postgres` | `redis` | `rabbitmq` | `services` | `auth`
 
 Init SQL (`infra/postgres/init/`) хардкодить імена БД — вони мають збігатися з `infra/.env`.
 
