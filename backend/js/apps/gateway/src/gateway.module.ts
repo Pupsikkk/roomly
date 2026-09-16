@@ -19,7 +19,7 @@ import { UsersController } from './user/users.controller';
     HealthModule,
     RedisModule.forRoot({
       isGlobal: true,
-      keyPrefix: 'roomly:gateway:',
+      keyPrefix: 'gateway:',
     }),
     ThrottlerModule.forRootAsync({
       inject: [RoomlyConfigService, RedisClientService],
