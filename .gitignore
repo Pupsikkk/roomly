@@ -1,0 +1,24 @@
+.env
+infra/.env
+
+# Local Docker volume data (never commit)
+infra/postgres/data/**
+!infra/postgres/data/.gitkeep
+infra/redis/data/**
+!infra/redis/data/.gitkeep
+infra/rabbitmq/data/**
+!infra/rabbitmq/data/.gitkeep
+
+.DS_Store
+node_modules/
+dist/
+build/
+coverage/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.idea/
+.vscode/
+*.log

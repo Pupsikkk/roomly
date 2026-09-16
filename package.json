@@ -1,0 +1,15 @@
+{
+  "name": "roomly",
+  "private": true,
+  "description": "Roomly monorepo — hotel network platform",
+  "scripts": {
+    "up": "node scripts/roomly.mjs up",
+    "dev": "node scripts/roomly.mjs dev",
+    "infra": "node scripts/roomly.mjs infra",
+    "down": "node scripts/roomly.mjs down",
+    "build:apps": "node scripts/roomly.mjs build",
+    "logs": "node scripts/roomly.mjs logs",
+    "ps": "node scripts/roomly.mjs ps",
+    "roomly": "node scripts/roomly.mjs"
+  }
+}

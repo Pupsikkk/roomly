@@ -1,0 +1,114 @@
+name: roomly
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-roomly}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-roomly}
+      # Subdir so bind-mount parent can keep .gitkeep without breaking initdb
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - ./postgres/data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-roomly}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - ./redis/data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-roomly}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-roomly}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MGMT_PORT:-15672}:15672"
+    volumes:
+      - ./rabbitmq/data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  gateway:
+    build:
+      context: ../backend/js
+      dockerfile: Dockerfile
+    image: roomly-js:local
+    env_file: .env
+    environment:
+      APP: gateway
+      PORT: ${GATEWAY_PORT:-3000}
+      NODE_ENV: production
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
+      USER_SERVICE_URL: http://user-service:${USER_SERVICE_PORT:-3001}
+      NOTIFICATION_SERVICE_URL: http://notification-service:${NOTIFICATION_SERVICE_PORT:-3002}
+      HOTEL_SERVICE_URL: http://hotel-service:${HOTEL_SERVICE_PORT:-8000}
+      BOOKING_SERVICE_URL: http://booking-service:${BOOKING_SERVICE_PORT:-8001}
+    ports:
+      - "${GATEWAY_PORT:-3000}:${GATEWAY_PORT:-3000}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  # Same image as gateway — build only once (gateway), then reuse
+  user-service:
+    image: roomly-js:local
+    pull_policy: never
+    env_file: .env
+    environment:
+      APP: user-service
+      PORT: ${USER_SERVICE_PORT:-3001}
+      NODE_ENV: production
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      USER_DB_NAME: ${USER_DB_NAME:-user_db}
+    ports:
+      - "${USER_SERVICE_PORT:-3001}:${USER_SERVICE_PORT:-3001}"
+    depends_on:
+      gateway:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  notification-service:
+    image: roomly-js:local
+    pull_policy: never
+    env_file: .env
+    environment:
+      APP: notification-service
+      PORT: ${NOTIFICATION_SERVICE_PORT:-3002}
+      NODE_ENV: production
+      RABBITMQ_HOST: rabbitmq
+    ports:
+      - "${NOTIFICATION_SERVICE_PORT:-3002}:${NOTIFICATION_SERVICE_PORT:-3002}"
+    depends_on:
+      gateway:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy

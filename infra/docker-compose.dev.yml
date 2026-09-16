@@ -1,0 +1,74 @@
+# Dev overlay: bind-mount source + nest --watch
+# Usage (from repo root): npm run dev
+#
+# Build only on gateway — user/notification reuse roomly-js:dev
+
+services:
+  gateway:
+    build:
+      context: ../backend/js
+      dockerfile: Dockerfile.dev
+    image: roomly-js:dev
+    env_file: .env
+    environment:
+      APP: gateway
+      PORT: ${GATEWAY_PORT:-3000}
+      NODE_ENV: development
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
+      USER_SERVICE_URL: http://user-service:${USER_SERVICE_PORT:-3001}
+      NOTIFICATION_SERVICE_URL: http://notification-service:${NOTIFICATION_SERVICE_PORT:-3002}
+      HOTEL_SERVICE_URL: http://hotel-service:${HOTEL_SERVICE_PORT:-8000}
+      BOOKING_SERVICE_URL: http://booking-service:${BOOKING_SERVICE_PORT:-8001}
+    ports:
+      - "${GATEWAY_PORT:-3000}:${GATEWAY_PORT:-3000}"
+    volumes:
+      - ../backend/js:/app
+      - gateway_node_modules:/app/node_modules
+    command: ["npm", "run", "start:dev:gateway"]
+
+  user-service:
+    image: roomly-js:dev
+    pull_policy: never
+    env_file: .env
+    environment:
+      APP: user-service
+      PORT: ${USER_SERVICE_PORT:-3001}
+      NODE_ENV: development
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      USER_DB_NAME: ${USER_DB_NAME:-user_db}
+    ports:
+      - "${USER_SERVICE_PORT:-3001}:${USER_SERVICE_PORT:-3001}"
+    volumes:
+      - ../backend/js:/app
+      - user_node_modules:/app/node_modules
+    depends_on:
+      gateway:
+        condition: service_started
+    command: ["npm", "run", "start:dev:user"]
+
+  notification-service:
+    image: roomly-js:dev
+    pull_policy: never
+    env_file: .env
+    environment:
+      APP: notification-service
+      PORT: ${NOTIFICATION_SERVICE_PORT:-3002}
+      NODE_ENV: development
+      RABBITMQ_HOST: rabbitmq
+    ports:
+      - "${NOTIFICATION_SERVICE_PORT:-3002}:${NOTIFICATION_SERVICE_PORT:-3002}"
+    volumes:
+      - ../backend/js:/app
+      - notification_node_modules:/app/node_modules
+    depends_on:
+      gateway:
+        condition: service_started
+    command: ["npm", "run", "start:dev:notification"]
+
+volumes:
+  gateway_node_modules:
+  user_node_modules:
+  notification_node_modules:
