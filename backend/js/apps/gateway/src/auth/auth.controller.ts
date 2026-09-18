@@ -18,7 +18,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { RoomlyConfigService } from '@roomly/common';
+import { RoomlyConfigService, Traced } from '@roomly/common';
 import {
   AUTH_COOKIE_NAMES,
   AUTH_HTTP_PATHS,
@@ -32,6 +32,7 @@ import { SignInDto } from './dto/sign-in.dto';
 import { SignUpDto } from './dto/sign-up.dto';
 import { JwtVerifierService } from './jwt-verifier.service';
 
+@Traced()
 @ApiTags('auth')
 @Controller()
 export class AuthController {

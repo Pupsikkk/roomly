@@ -3,6 +3,8 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import {
   resolveJwtPrivateKeyPem,
   RoomlyConfigService,
+  ExcludeTracer,
+  Traced,
 } from '@roomly/common';
 import type { Jwk, JwksResponse } from '@roomly/contracts';
 import { decodeJwt, exportJWK, SignJWT } from 'jose';
@@ -12,6 +14,7 @@ import type {
   TokenSignerPort,
 } from '../../../application/ports/token-signer.port';
 
+@Traced({ work: 'cpu' })
 @Injectable()
 export class RsaJwtTokenSigner implements TokenSignerPort, OnModuleInit {
   private privateKey!: KeyObject;
@@ -70,6 +73,7 @@ export class RsaJwtTokenSigner implements TokenSignerPort, OnModuleInit {
     };
   }
 
+  @ExcludeTracer()
   async getJwks(): Promise<JwksResponse> {
     return { keys: [this.publicJwk] };
   }

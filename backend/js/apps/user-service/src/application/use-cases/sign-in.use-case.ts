@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { Traced, withSpan } from '@roomly/common';
 import type { SessionTokensResponse } from '@roomly/contracts';
 import { InvalidCredentialsError } from '../../domain/index';
 import * as bcrypt from 'bcrypt';
@@ -7,12 +8,14 @@ import {
   USER_REPOSITORY,
   type UserRepository,
 } from '../ports/user.repository';
+import { PasswordUtils } from '../utils/password.utils';
 
 export type SignInInput = {
   email: string;
   password: string;
 };
 
+@Traced()
 @Injectable()
 export class SignInUseCase {
   constructor(
@@ -28,7 +31,7 @@ export class SignInUseCase {
       throw new InvalidCredentialsError();
     }
 
-    const ok = await bcrypt.compare(input.password, user.passwordHash);
+    const ok = await PasswordUtils.compare(input.password, user.passwordHash);
     if (!ok) {
       throw new InvalidCredentialsError();
     }

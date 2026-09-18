@@ -4,7 +4,6 @@ export * from './ports/token-denylist.port';
 export * from './ports/token-signer.port';
 export * from './ports/user.repository';
 export * from './services/issue-session-tokens.service';
-export * from './use-cases/create-user.use-case';
 export * from './use-cases/get-user-by-id.use-case';
 export * from './use-cases/logout.use-case';
 export * from './use-cases/refresh-session.use-case';

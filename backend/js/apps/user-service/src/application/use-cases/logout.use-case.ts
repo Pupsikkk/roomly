@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { Traced } from '@roomly/common';
 import {
   REFRESH_TOKEN_STORE,
   type RefreshTokenStorePort,
@@ -14,6 +15,7 @@ export type LogoutInput = {
   refreshToken?: string;
 };
 
+@Traced()
 @Injectable()
 export class LogoutUseCase {
   constructor(

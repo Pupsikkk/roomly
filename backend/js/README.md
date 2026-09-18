@@ -54,6 +54,8 @@ docker compose -f infra/docker-compose.yml -f infra/docker-compose.dev.yml up --
 | user-service | `user-service` | 3001 (лише Docker network) |
 | notification-service | `notification-service` | 3002 (лише Docker network) |
 
+Tracing: Jaeger UI `http://localhost:16686` (OTLP `:4318`). SDK увімкнений, якщо задано `OTEL_EXPORTER_OTLP_ENDPOINT`.
+
 ## Env
 
 Конфіг у `infra/.env` (див. `infra/.env.example`):

@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { Traced } from '@roomly/common';
 import type { SessionTokensResponse } from '@roomly/contracts';
 import { InvalidRefreshTokenError } from '../../domain/index';
 import {
@@ -11,6 +12,7 @@ export type RefreshSessionInput = {
   refreshToken: string;
 };
 
+@Traced()
 @Injectable()
 export class RefreshSessionUseCase {
   constructor(

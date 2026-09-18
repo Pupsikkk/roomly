@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import {
-  CreateUserUseCase,
   GetUserByIdUseCase,
   LogoutUseCase,
   RefreshSessionUseCase,
@@ -24,7 +23,6 @@ import { UsersController } from './user/users.controller';
   ],
   controllers: [UsersController, AuthController, JwksController],
   providers: [
-    CreateUserUseCase,
     GetUserByIdUseCase,
     SignUpUseCase,
     SignInUseCase,

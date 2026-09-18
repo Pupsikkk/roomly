@@ -1,3 +1,4 @@
+import './tracing';
 import { NestFactory } from '@nestjs/core';
 import { RoomlyConfigService } from '@roomly/common';
 import { NotificationServiceModule } from './notification-service.module';

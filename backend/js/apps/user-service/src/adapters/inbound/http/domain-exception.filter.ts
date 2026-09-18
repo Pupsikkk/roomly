@@ -7,6 +7,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { recordActiveSpanError } from '@roomly/common';
 import type { Response } from 'express';
 import {
   InvalidCredentialsError,
@@ -34,6 +35,10 @@ export class DomainExceptionFilter implements ExceptionFilter {
     const httpException = this.toHttpException(exception);
     const status = httpException.getStatus();
     const body = httpException.getResponse();
+
+    recordActiveSpanError(exception, {
+      'http.response.status_code': status,
+    });
 
     response.status(status).json(
       typeof body === 'string'

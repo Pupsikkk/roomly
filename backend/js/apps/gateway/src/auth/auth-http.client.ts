@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Traced } from '@roomly/common';
 import {
   AUTH_HTTP_PATHS,
   type LogoutRequest,
@@ -9,6 +10,7 @@ import {
 } from '@roomly/contracts';
 import { UserServiceHttp } from '../http/user-service.http';
 
+@Traced({ work: 'network' })
 @Injectable()
 export class AuthHttpClient {
   constructor(private readonly http: UserServiceHttp) {}

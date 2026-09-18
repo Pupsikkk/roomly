@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
-import { durationToSeconds, RoomlyConfigService } from '@roomly/common';
+import {
+  durationToSeconds,
+  RoomlyConfigService,
+  Traced,
+} from '@roomly/common';
 import type { SessionTokensResponse } from '@roomly/contracts';
 import {
   createRefreshToken,
@@ -16,6 +20,7 @@ import {
  * Issue access JWT + opaque refresh token (stored hashed in Redis).
  * Used by sign-in and refresh use cases.
  */
+@Traced()
 @Injectable()
 export class IssueSessionTokensService {
   constructor(

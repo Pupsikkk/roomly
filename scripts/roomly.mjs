@@ -25,7 +25,7 @@ const COMPOSE_FILE = path.join(INFRA_DIR, 'docker-compose.yml');
 const COMPOSE_DEV_FILE = path.join(INFRA_DIR, 'docker-compose.dev.yml');
 
 const JS_SERVICES = ['gateway', 'user-service', 'notification-service'];
-const INFRA_SERVICES = ['postgres', 'redis', 'rabbitmq'];
+const INFRA_SERVICES = ['postgres', 'redis', 'rabbitmq', 'jaeger'];
 
 function loadEnvFile(filePath) {
   if (!existsSync(filePath)) return;
@@ -101,6 +101,7 @@ function cmdUp() {
   console.log(`  Gateway:       http://localhost:${env('GATEWAY_PORT', '3000')}`);
   console.log(`  Swagger:       http://localhost:${env('GATEWAY_PORT', '3000')}/docs`);
   console.log(`  RabbitMQ UI:   http://localhost:${env('RABBITMQ_MGMT_PORT', '15672')}`);
+  console.log(`  Jaeger UI:     http://localhost:${env('JAEGER_UI_PORT', '16686')}`);
   console.log('  (user / notification — internal only, no host ports)');
 }
 
@@ -113,7 +114,7 @@ function cmdDev() {
 function cmdInfra() {
   ensureEnv();
   dockerCompose([], 'up', '-d', ...INFRA_SERVICES);
-  console.log('Infrastructure is up (postgres, redis, rabbitmq)');
+  console.log('Infrastructure is up (postgres, redis, rabbitmq, jaeger)');
 }
 
 function cmdDown(extra = []) {

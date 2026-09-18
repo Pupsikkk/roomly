@@ -27,7 +27,7 @@ export class UserCreatedConsumer implements OnModuleInit {
       USER_EVENT_TYPES.CREATED,
     );
 
-    await channel.consume(queue, (msg) => {
+    await channel.consume(queue, async(msg) => {
       if (!msg) return;
 
       try {

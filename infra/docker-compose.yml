@@ -47,6 +47,16 @@ services:
       timeout: 5s
       retries: 10
 
+  # Minimal tracing backend (OTLP in → UI). No metrics/logs stack.
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "${JAEGER_UI_PORT:-16686}:16686"
+      - "${JAEGER_OTLP_HTTP_PORT:-4318}:4318"
+      - "${JAEGER_OTLP_GRPC_PORT:-4317}:4317"
+
   gateway:
     build:
       context: ../backend/js
@@ -67,6 +77,8 @@ services:
       # Never load signing secrets into gateway (env_file would otherwise inject them)
       JWT_PRIVATE_KEY: ""
       JWT_PRIVATE_KEY_PATH: ""
+      OTEL_SERVICE_NAME: gateway
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
     ports:
       - "${GATEWAY_PORT:-3000}:${GATEWAY_PORT:-3000}"
     depends_on:
@@ -76,6 +88,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      jaeger:
+        condition: service_started
 
   # One-shot: apply user_db migrations before user-service replicas start
   user-migrate:
@@ -109,6 +123,8 @@ services:
       USER_DB_NAME: ${USER_DB_NAME:-user_db}
       # Private key stays on user-service only (not mounted on gateway)
       JWT_PRIVATE_KEY_PATH: /run/secrets/jwt/jwt-private.pem
+      OTEL_SERVICE_NAME: user-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
     volumes:
       - ./secrets/dev:/run/secrets/jwt:ro
     depends_on:
@@ -122,6 +138,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      jaeger:
+        condition: service_started
 
   notification-service:
     image: roomly-js:local
@@ -132,8 +150,12 @@ services:
       PORT: ${NOTIFICATION_SERVICE_PORT:-3002}
       NODE_ENV: production
       RABBITMQ_HOST: rabbitmq
+      OTEL_SERVICE_NAME: notification-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
     depends_on:
       gateway:
         condition: service_started
       rabbitmq:
         condition: service_healthy
+      jaeger:
+        condition: service_started
