@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import {
+  createRoomlyLoggerModule,
   HealthModule,
   RoomlyConfigModule,
   RoomlyConfigService,
@@ -17,6 +18,7 @@ import { UsersController } from './user/users.controller';
 
 @Module({
   imports: [
+    createRoomlyLoggerModule('gateway'),
     RoomlyConfigModule.forRoot({
       load: ['services', 'gateway', 'redis', 'auth'],
     }),

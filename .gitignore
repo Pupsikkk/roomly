@@ -8,6 +8,10 @@ infra/redis/data/**
 !infra/redis/data/.gitkeep
 infra/rabbitmq/data/**
 !infra/rabbitmq/data/.gitkeep
+infra/loki/data/**
+!infra/loki/data/.gitkeep
+infra/grafana/data/**
+!infra/grafana/data/.gitkeep
 
 # Dev JWT signing keys (generate locally: npm run auth:keys)
 infra/secrets/**/*.pem

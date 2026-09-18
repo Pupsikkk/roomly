@@ -25,7 +25,15 @@ const COMPOSE_FILE = path.join(INFRA_DIR, 'docker-compose.yml');
 const COMPOSE_DEV_FILE = path.join(INFRA_DIR, 'docker-compose.dev.yml');
 
 const JS_SERVICES = ['gateway', 'user-service', 'notification-service'];
-const INFRA_SERVICES = ['postgres', 'redis', 'rabbitmq', 'jaeger'];
+const INFRA_SERVICES = [
+  'postgres',
+  'redis',
+  'rabbitmq',
+  'jaeger',
+  'loki',
+  'promtail',
+  'grafana',
+];
 
 function loadEnvFile(filePath) {
   if (!existsSync(filePath)) return;
@@ -95,26 +103,33 @@ function env(name, fallback) {
 function cmdUp() {
   ensureEnv();
   dockerCompose([], 'build', 'gateway');
-  dockerCompose([], 'up', '-d', ...JS_SERVICES);
+  dockerCompose([], 'up', '-d', ...INFRA_SERVICES, ...JS_SERVICES);
   console.log('');
   console.log('Roomly is up (prod mode)');
   console.log(`  Gateway:       http://localhost:${env('GATEWAY_PORT', '3000')}`);
   console.log(`  Swagger:       http://localhost:${env('GATEWAY_PORT', '3000')}/docs`);
   console.log(`  RabbitMQ UI:   http://localhost:${env('RABBITMQ_MGMT_PORT', '15672')}`);
   console.log(`  Jaeger UI:     http://localhost:${env('JAEGER_UI_PORT', '16686')}`);
+  console.log(`  Grafana:       http://localhost:${env('GRAFANA_PORT', '3003')}`);
   console.log('  (user / notification — internal only, no host ports)');
 }
 
 function cmdDev() {
   ensureEnv();
   dockerCompose([COMPOSE_DEV_FILE], 'build', 'gateway');
+  // Infra detached (incl. Loki/Grafana); Nest services stay in foreground for logs.
+  dockerCompose([COMPOSE_DEV_FILE], 'up', '-d', ...INFRA_SERVICES);
   dockerCompose([COMPOSE_DEV_FILE], 'up', ...JS_SERVICES);
 }
 
 function cmdInfra() {
   ensureEnv();
   dockerCompose([], 'up', '-d', ...INFRA_SERVICES);
-  console.log('Infrastructure is up (postgres, redis, rabbitmq, jaeger)');
+  console.log(
+    'Infrastructure is up (postgres, redis, rabbitmq, jaeger, loki, promtail, grafana)',
+  );
+  console.log(`  Grafana:  http://localhost:${env('GRAFANA_PORT', '3003')}`);
+  console.log(`  Jaeger:   http://localhost:${env('JAEGER_UI_PORT', '16686')}`);
 }
 
 function cmdDown(extra = []) {
@@ -143,7 +158,7 @@ function cmdHelp() {
   npm run up          start infra + Nest services (detached, prod image)
   npm run dev         hot-reload (infra/docker-compose.dev.yml)
   npm run auth:keys   generate local JWT RSA private key (once; skip if exists)
-  npm run infra       only postgres, redis, rabbitmq
+  npm run infra       only postgres, redis, rabbitmq, jaeger, loki, grafana
   npm run down        stop all services
   npm run build:apps  rebuild Nest image (gateway)
   npm run logs        follow logs (optional: npm run logs -- gateway)

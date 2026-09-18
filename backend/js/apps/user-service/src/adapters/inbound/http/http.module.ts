@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_FILTER } from '@nestjs/core';
 import {
   GetUserByIdUseCase,
   LogoutUseCase,
@@ -12,6 +13,7 @@ import { PersistenceModule } from '../../outbound/persistence/persistence.module
 import { RedisAdapterModule } from '../../outbound/redis/redis.module';
 import { AuthController } from './auth/auth.controller';
 import { JwksController } from './auth/jwks.controller';
+import { DomainExceptionFilter } from './domain-exception.filter';
 import { UsersController } from './user/users.controller';
 
 @Module({
@@ -28,6 +30,10 @@ import { UsersController } from './user/users.controller';
     SignInUseCase,
     RefreshSessionUseCase,
     LogoutUseCase,
+    {
+      provide: APP_FILTER,
+      useClass: DomainExceptionFilter,
+    },
   ],
 })
 export class HttpModule {}

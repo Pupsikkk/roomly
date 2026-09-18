@@ -13,19 +13,10 @@ services:
     environment:
       APP: gateway
       PORT: ${GATEWAY_PORT:-3000}
-      NODE_ENV: development
-      POSTGRES_HOST: postgres
-      REDIS_HOST: redis
-      RABBITMQ_HOST: rabbitmq
-      USER_SERVICE_URL: http://user-service:${USER_SERVICE_PORT:-3001}
-      NOTIFICATION_SERVICE_URL: http://notification-service:${NOTIFICATION_SERVICE_PORT:-3002}
-      HOTEL_SERVICE_URL: http://hotel-service:${HOTEL_SERVICE_PORT:-8000}
-      BOOKING_SERVICE_URL: http://booking-service:${BOOKING_SERVICE_PORT:-8001}
-      # Never load signing secrets into gateway (env_file would otherwise inject them)
+      NODE_ENV: ${NODE_ENV:-development}
       JWT_PRIVATE_KEY: ""
       JWT_PRIVATE_KEY_PATH: ""
       OTEL_SERVICE_NAME: gateway
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
     ports:
       - "${GATEWAY_PORT:-3000}:${GATEWAY_PORT:-3000}"
     volumes:
@@ -39,9 +30,7 @@ services:
     pull_policy: never
     env_file: .env
     environment:
-      NODE_ENV: development
-      POSTGRES_HOST: postgres
-      USER_DB_NAME: ${USER_DB_NAME:-user_db}
+      NODE_ENV: ${NODE_ENV:-development}
     volumes:
       - ../backend/js:/app
       - user_node_modules:/app/node_modules
@@ -60,15 +49,9 @@ services:
     environment:
       APP: user-service
       PORT: ${USER_SERVICE_PORT:-3001}
-      NODE_ENV: development
-      POSTGRES_HOST: postgres
-      REDIS_HOST: redis
-      RABBITMQ_HOST: rabbitmq
-      USER_DB_NAME: ${USER_DB_NAME:-user_db}
-      # Private key stays on user-service only (not mounted on gateway)
-      JWT_PRIVATE_KEY_PATH: /run/secrets/jwt/jwt-private.pem
+      NODE_ENV: ${NODE_ENV:-development}
+      JWT_PRIVATE_KEY_PATH: ${JWT_PRIVATE_KEY_PATH_DOCKER:-/run/secrets/jwt/jwt-private.pem}
       OTEL_SERVICE_NAME: user-service
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
     volumes:
       - ../backend/js:/app
       - user_node_modules:/app/node_modules
@@ -87,10 +70,8 @@ services:
     environment:
       APP: notification-service
       PORT: ${NOTIFICATION_SERVICE_PORT:-3002}
-      NODE_ENV: development
-      RABBITMQ_HOST: rabbitmq
+      NODE_ENV: ${NODE_ENV:-development}
       OTEL_SERVICE_NAME: notification-service
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
     volumes:
       - ../backend/js:/app
       - notification_node_modules:/app/node_modules

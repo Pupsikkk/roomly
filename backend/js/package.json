@@ -58,7 +58,10 @@
     "helmet": "^8.3.0",
     "ioredis": "^5.11.1",
     "jose": "^6.2.12",
+    "nestjs-pino": "^5.2.0",
     "pg": "^8.23.0",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "swagger-ui-express": "^5.0.1",
@@ -77,6 +80,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^24.0.0",
     "@types/pg": "^8.23.1",
+    "@types/pino-http": "^5.8.4",
     "@types/supertest": "^7.0.0",
     "@types/swagger-ui-express": "^4.1.8",
     "eslint": "^9.18.0",
@@ -119,5 +123,8 @@
       "^@roomly/infra(.*)$": "<rootDir>/libs/infra/src$1",
       "^@roomly/contracts(.*)$": "<rootDir>/libs/contracts/src$1"
     }
+  },
+  "optionalDependencies": {
+    "pino-pretty": "^13.1.3"
   }
 }

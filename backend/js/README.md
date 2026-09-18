@@ -8,7 +8,7 @@ apps/
   user-service/            # :3001 · hex (domain / application / adapters)
   notification-service/    # :3002
 libs/
-  common/src/              # @roomly/common — config, health, constants
+  common/src/              # @roomly/common — config, health, logging, tracing, constants
   infra/src/               # @roomly/infra — connect helpers
   contracts/src/           # @roomly/contracts — events + HTTP shapes
     db/
@@ -55,6 +55,15 @@ docker compose -f infra/docker-compose.yml -f infra/docker-compose.dev.yml up --
 | notification-service | `notification-service` | 3002 (лише Docker network) |
 
 Tracing: Jaeger UI `http://localhost:16686` (OTLP `:4318`). SDK увімкнений, якщо задано `OTEL_EXPORTER_OTLP_ENDPOINT`.
+
+Logging: **nestjs-pino** (JSON у stdout). Поля: `service`, `message`, `level`, за наявності активного span — `trace_id` / `span_id`. HTTP access-логи автоматично (крім `/health`). `LOG_LEVEL` (default `info`).
+
+Збір логів (compose): **Promtail → Loki → Grafana** (`http://localhost:3003`). У Grafana Explore: `{compose_service="gateway"}` або `{service="user-service"}`. Лінк TraceID у логах → Jaeger datasource. Для scrape тримай `LOG_PRETTY` вимкненим у `infra/.env` (pretty ламає JSON pipeline).
+
+Зв’язок лог ↔ трейс:
+
+1. Grafana Explore (Loki) → рядок з `trace_id` → **View trace**, або
+2. Jaeger UI / Grafana Jaeger → Trace ID → `docker compose … logs | grep <trace_id>`
 
 ## Env
 

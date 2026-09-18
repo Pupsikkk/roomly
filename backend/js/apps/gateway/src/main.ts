@@ -6,11 +6,14 @@ import { RoomlyConfigService } from '@roomly/common';
 import { AUTH_COOKIE_NAMES } from '@roomly/contracts';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import { Logger } from 'nestjs-pino';
 import { GatewayModule } from './gateway.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(GatewayModule);
+  const app = await NestFactory.create(GatewayModule, { bufferLogs: true });
+  app.useLogger(app.get(Logger));
   const config = app.get(RoomlyConfigService);
+  const logger = app.get(Logger);
 
   app.use(helmet());
   app.use(cookieParser());
@@ -38,8 +41,8 @@ async function bootstrap() {
 
   const port = config.port.gateway;
   await app.listen(port);
-  console.log(`gateway listening on ${port}`);
-  console.log(`swagger UI: http://localhost:${port}/docs`);
+  logger.log(`gateway listening on ${port}`);
+  logger.log(`swagger UI: http://localhost:${port}/docs`);
 }
 void bootstrap();
 

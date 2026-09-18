@@ -1,12 +1,27 @@
 import { DiagConsoleLogger, DiagLogLevel, diag } from '@opentelemetry/api';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { ExpressLayerType } from '@opentelemetry/instrumentation-express';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
+import type { IncomingMessage } from 'node:http';
 
 let started = false;
+
+function incomingPath(req: IncomingMessage): string {
+  return (req.url ?? '/').split('?')[0] || '/';
+}
+
+/** Health, Swagger UI/assets, favicon — not useful as root traces. */
+function ignoreIncomingTrace(req: IncomingMessage): boolean {
+  const path = incomingPath(req);
+  return (
+    path === '/health' ||
+    path === '/favicon.ico' ||
+    path === '/' ||
+    path.startsWith('/docs')
+  );
+}
 
 /**
  * Minimal OpenTelemetry traces to OTLP HTTP (Jaeger).
@@ -41,14 +56,24 @@ export function startTracing(serviceName: string): void {
         '@opentelemetry/instrumentation-fs': { enabled: false },
         '@opentelemetry/instrumentation-dns': { enabled: false },
         '@opentelemetry/instrumentation-net': { enabled: false },
+        // Correlation via pino mixin in createRoomlyLoggerModule; avoid
+        // duplicate fields / log export without a log pipeline.
+        '@opentelemetry/instrumentation-pino': { enabled: false },
         // NestJS 11 / Express 5: router pkg duplicates express and emits
         // "middleware - patched" junk. Keep HTTP + Nest controller spans.
         '@opentelemetry/instrumentation-router': { enabled: false },
-        '@opentelemetry/instrumentation-express': {
-          ignoreLayersType: [
-            ExpressLayerType.MIDDLEWARE,
-            ExpressLayerType.REQUEST_HANDLER,
-          ],
+        // Express 5 + swagger-ui use /*splat catch-alls; express instrumentation
+        // renames root spans to "GET {/*splat}{/*splat}" and hides real paths.
+        '@opentelemetry/instrumentation-express': { enabled: false },
+        '@opentelemetry/instrumentation-http': {
+          ignoreIncomingRequestHook: ignoreIncomingTrace,
+          requestHook(span, request) {
+            // Incoming only (ClientRequest has no url string like IncomingMessage).
+            if (!('url' in request) || typeof request.url !== 'string') return;
+            const path = incomingPath(request);
+            const method = request.method ?? 'HTTP';
+            span.updateName(`${method} ${path}`);
+          },
         },
         // Drop pg.connect / pg-pool.connect noise; keep query spans.
         '@opentelemetry/instrumentation-pg': {
