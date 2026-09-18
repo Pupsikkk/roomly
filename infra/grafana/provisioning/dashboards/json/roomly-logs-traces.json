@@ -1,0 +1,242 @@
+{
+  "uid": "roomly-logs-traces",
+  "title": "Roomly Logs & Traces (Loki + Jaeger)",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "tags": [
+    "roomly",
+    "loki",
+    "jaeger",
+    "logs",
+    "traces"
+  ],
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "type": "custom",
+        "label": "Service",
+        "query": "gateway,user-service,notification-service",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "includeAll": true,
+        "allValue": "gateway|user-service|notification-service",
+        "multi": true,
+        "options": []
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 100,
+      "type": "text",
+      "title": "How to correlate",
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "**Logs \u2192 Trace:** \u0443 \u043f\u0430\u043d\u0435\u043b\u0456 \u043b\u043e\u0433\u0456\u0432 \u043a\u043b\u0456\u043a\u043d\u0438 **View trace** \u0431\u0456\u043b\u044f `trace_id` (Loki derived field \u2192 Jaeger).\n\n**Trace \u2192 Logs:** Explore \u2192 datasource **Jaeger** \u2192 \u0432\u0456\u0434\u043a\u0440\u0438\u0439 span \u2192 **Logs for this span**.\n\n**Jaeger UI:** [http://localhost:16686](http://localhost:16686) \u00b7 **Explore:** \u043b\u0456\u0432\u0435 \u043c\u0435\u043d\u044e \u2192 Explore \u2192 Loki / Jaeger."
+      }
+    },
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Log volume / s (by service)",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (compose_service) (rate({compose_service=~\"$service\"}[1m]))",
+          "legendFormat": "{{compose_service}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Warn + error log rate",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (compose_service) (rate({compose_service=~\"$service\"} | json | level=~\"(40|50|warn|error|WARN|ERROR)\" [1m]))",
+          "legendFormat": "{{compose_service}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "logs",
+      "title": "Recent Nest logs (click TraceID \u2192 Jaeger)",
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{compose_service=~\"$service\"} | json"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": true,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "id": 4,
+      "type": "logs",
+      "title": "Errors / warnings only",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{compose_service=~\"$service\"} | json | level=~\"(40|50|warn|error|WARN|ERROR)\""
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Recent traces (Jaeger search \u2014 gateway)",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 34
+      },
+      "datasource": {
+        "type": "jaeger",
+        "uid": "jaeger"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "search",
+          "service": "gateway",
+          "limit": 20
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Recent traces (Jaeger search \u2014 user-service)",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 44
+      },
+      "datasource": {
+        "type": "jaeger",
+        "uid": "jaeger"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "search",
+          "service": "user-service",
+          "limit": 15
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Recent traces (Jaeger search \u2014 notification-service)",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 44
+      },
+      "datasource": {
+        "type": "jaeger",
+        "uid": "jaeger"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "search",
+          "service": "notification-service",
+          "limit": 15
+        }
+      ]
+    }
+  ]
+}

@@ -21,7 +21,14 @@ export function createRoomlyLoggerModule(serviceName: string) {
     autoLogging: {
       ignore: (req) => {
         const url = req.url ?? '';
-        return url === '/health' || url.startsWith('/health?');
+        return (
+          url === '/health' ||
+          url.startsWith('/health?') ||
+          url === '/metrics' ||
+          url.startsWith('/metrics?') ||
+          url === '/json/version' ||
+          url.startsWith('/json/version?')
+        );
       },
     },
     mixin() {

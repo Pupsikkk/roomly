@@ -1,39 +1,53 @@
 import { DiagConsoleLogger, DiagLogLevel, diag } from '@opentelemetry/api';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
+import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { HostMetrics } from '@opentelemetry/host-metrics';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 import type { IncomingMessage } from 'node:http';
 
 let started = false;
+let prometheusExporter: PrometheusExporter | undefined;
+
+export function getPrometheusExporter(): PrometheusExporter | undefined {
+  return prometheusExporter;
+}
 
 function incomingPath(req: IncomingMessage): string {
   return (req.url ?? '/').split('?')[0] || '/';
 }
 
-/** Health, Swagger UI/assets, favicon — not useful as root traces. */
+/** Health, metrics scrape, Swagger UI/assets, favicon — not useful as root traces. */
 function ignoreIncomingTrace(req: IncomingMessage): boolean {
   const path = incomingPath(req);
   return (
     path === '/health' ||
+    path === '/metrics' ||
     path === '/favicon.ico' ||
     path === '/' ||
+    path === '/json/version' ||
     path.startsWith('/docs')
   );
 }
 
 /**
- * Minimal OpenTelemetry traces to OTLP HTTP (Jaeger).
- * No-op unless OTEL_EXPORTER_OTLP_ENDPOINT is set.
+ * OpenTelemetry traces (OTLP → Jaeger) + metrics (Prometheus /metrics).
  * Import apps/<service>/src/tracing.ts first in main.ts (side effect).
+ *
+ * - Traces: require OTEL_EXPORTER_OTLP_ENDPOINT
+ * - Metrics: on by default; disable with OTEL_METRICS_DISABLED=true
+ * - Entire SDK: OTEL_SDK_DISABLED=true
  */
 export function startTracing(serviceName: string): void {
   if (started) return;
   if (process.env.OTEL_SDK_DISABLED === 'true') return;
 
   const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT?.replace(/\/$/, '');
-  if (!endpoint) return;
+  const tracesEnabled = Boolean(endpoint);
+  const metricsEnabled = process.env.OTEL_METRICS_DISABLED !== 'true';
+  if (!tracesEnabled && !metricsEnabled) return;
 
   started = true;
 
@@ -41,16 +55,31 @@ export function startTracing(serviceName: string): void {
     diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
   }
 
-  const tracesUrl = endpoint.endsWith('/v1/traces')
-    ? endpoint
-    : `${endpoint}/v1/traces`;
+  const resolvedName =
+    process.env.OTEL_SERVICE_NAME?.trim() || serviceName;
+
+  const metricReaders = [];
+  if (metricsEnabled) {
+    prometheusExporter = new PrometheusExporter({
+      preventServerStart: true,
+    });
+    metricReaders.push(prometheusExporter);
+  }
 
   const sdk = new NodeSDK({
     resource: resourceFromAttributes({
-      [ATTR_SERVICE_NAME]:
-        process.env.OTEL_SERVICE_NAME?.trim() || serviceName,
+      [ATTR_SERVICE_NAME]: resolvedName,
     }),
-    traceExporter: new OTLPTraceExporter({ url: tracesUrl }),
+    ...(tracesEnabled
+      ? {
+          traceExporter: new OTLPTraceExporter({
+            url: endpoint!.endsWith('/v1/traces')
+              ? endpoint!
+              : `${endpoint}/v1/traces`,
+          }),
+        }
+      : {}),
+    ...(metricReaders.length > 0 ? { metricReaders } : {}),
     instrumentations: [
       getNodeAutoInstrumentations({
         '@opentelemetry/instrumentation-fs': { enabled: false },
@@ -108,13 +137,25 @@ export function startTracing(serviceName: string): void {
 
   sdk.start();
 
+  if (metricsEnabled) {
+    // CPU / memory / process gauges alongside HTTP RED from instrumentation-http.
+    new HostMetrics().start();
+  }
+
   const shutdown = () => {
     void sdk.shutdown().catch(() => undefined);
   };
   process.once('SIGTERM', shutdown);
   process.once('SIGINT', shutdown);
 
+  const tracesUrl = tracesEnabled
+    ? endpoint!.endsWith('/v1/traces')
+      ? endpoint!
+      : `${endpoint}/v1/traces`
+    : undefined;
   console.log(
-    `OpenTelemetry tracing enabled service=${serviceName} endpoint=${tracesUrl}`,
+    `OpenTelemetry enabled service=${resolvedName}` +
+      (tracesUrl ? ` traces=${tracesUrl}` : ' traces=off') +
+      (metricsEnabled ? ' metrics=/metrics' : ' metrics=off'),
   );
 }

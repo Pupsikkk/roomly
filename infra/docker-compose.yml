@@ -19,6 +19,15 @@ services:
       timeout: 5s
       retries: 10
 
+  # Metrics for community PostgreSQL Grafana dashboards (not OTel).
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.16.0
+    environment:
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-roomly}:${POSTGRES_PASSWORD:-roomly}@postgres:5432/postgres?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   redis:
     image: redis:7-alpine
     ports:
@@ -31,16 +40,29 @@ services:
       timeout: 3s
       retries: 10
 
+  # Metrics for community Redis Grafana dashboards (not OTel).
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.67.0
+    environment:
+      REDIS_ADDR: redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
+    # Stable Erlang nodename → stable rabbitmq_cluster label (not rabbit@<container_id>).
+    hostname: rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-roomly}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-roomly}
+      RABBITMQ_NODENAME: rabbit@rabbitmq
     ports:
       - "${RABBITMQ_PORT:-5672}:5672"
       - "${RABBITMQ_MGMT_PORT:-15672}:15672"
     volumes:
       - ./rabbitmq/data:/var/lib/rabbitmq
+      - ./rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 5s
@@ -77,7 +99,7 @@ services:
     depends_on:
       - loki
 
-  # Unified UI: Loki logs + Jaeger traces (Prometheus metrics later).
+  # Unified UI: Loki logs + Jaeger traces + Prometheus metrics.
   grafana:
     image: grafana/grafana:11.5.2
     environment:
@@ -95,6 +117,20 @@ services:
     depends_on:
       - loki
       - jaeger
+      - prometheus
+
+  # Metrics store (scrapes Nest /metrics).
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
 
   gateway:
     build:

@@ -27,12 +27,15 @@ const COMPOSE_DEV_FILE = path.join(INFRA_DIR, 'docker-compose.dev.yml');
 const JS_SERVICES = ['gateway', 'user-service', 'notification-service'];
 const INFRA_SERVICES = [
   'postgres',
+  'postgres-exporter',
   'redis',
+  'redis-exporter',
   'rabbitmq',
   'jaeger',
   'loki',
   'promtail',
   'grafana',
+  'prometheus',
 ];
 
 function loadEnvFile(filePath) {
@@ -111,6 +114,7 @@ function cmdUp() {
   console.log(`  RabbitMQ UI:   http://localhost:${env('RABBITMQ_MGMT_PORT', '15672')}`);
   console.log(`  Jaeger UI:     http://localhost:${env('JAEGER_UI_PORT', '16686')}`);
   console.log(`  Grafana:       http://localhost:${env('GRAFANA_PORT', '3003')}`);
+  console.log(`  Prometheus:    http://localhost:${env('PROMETHEUS_PORT', '9090')}`);
   console.log('  (user / notification — internal only, no host ports)');
 }
 
@@ -126,10 +130,11 @@ function cmdInfra() {
   ensureEnv();
   dockerCompose([], 'up', '-d', ...INFRA_SERVICES);
   console.log(
-    'Infrastructure is up (postgres, redis, rabbitmq, jaeger, loki, promtail, grafana)',
+    'Infrastructure is up (postgres, redis, rabbitmq, jaeger, loki, promtail, grafana, prometheus)',
   );
-  console.log(`  Grafana:  http://localhost:${env('GRAFANA_PORT', '3003')}`);
-  console.log(`  Jaeger:   http://localhost:${env('JAEGER_UI_PORT', '16686')}`);
+  console.log(`  Grafana:     http://localhost:${env('GRAFANA_PORT', '3003')}`);
+  console.log(`  Jaeger:      http://localhost:${env('JAEGER_UI_PORT', '16686')}`);
+  console.log(`  Prometheus:  http://localhost:${env('PROMETHEUS_PORT', '9090')}`);
 }
 
 function cmdDown(extra = []) {
@@ -158,7 +163,7 @@ function cmdHelp() {
   npm run up          start infra + Nest services (detached, prod image)
   npm run dev         hot-reload (infra/docker-compose.dev.yml)
   npm run auth:keys   generate local JWT RSA private key (once; skip if exists)
-  npm run infra       only postgres, redis, rabbitmq, jaeger, loki, grafana
+  npm run infra       only postgres, redis, rabbitmq, jaeger, loki, grafana, prometheus
   npm run down        stop all services
   npm run build:apps  rebuild Nest image (gateway)
   npm run logs        follow logs (optional: npm run logs -- gateway)

@@ -35,3 +35,13 @@ datasources:
         query: '{compose_service=~".+"} | json | trace_id=`$${__span.traceId}`'
       nodeGraph:
         enabled: true
+
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    editable: false
+    jsonData:
+      httpMethod: POST
+      timeInterval: 15s
