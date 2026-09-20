@@ -6,9 +6,25 @@ import {
   HttpStatus,
   Injectable,
 } from '@nestjs/common';
+import { isSpanContextValid, trace } from '@opentelemetry/api';
 import type { Response } from 'express';
 import { Logger } from 'nestjs-pino';
 import { recordActiveSpanError } from './record-active-span-error';
+import { TRACE_ID_HEADER } from './trace-id.interceptor';
+
+function activeTraceId(): string | undefined {
+  const span = trace.getActiveSpan();
+  if (!span) return undefined;
+  const ctx = span.spanContext();
+  return isSpanContextValid(ctx) ? ctx.traceId : undefined;
+}
+
+function withTraceId<T extends Record<string, unknown>>(
+  body: T,
+): T & { traceId?: string } {
+  const traceId = activeTraceId();
+  return traceId ? { ...body, traceId } : body;
+}
 
 /**
  * Catch-all for unexpected failures (and HTTP 5xx).
@@ -21,6 +37,10 @@ export class UnhandledExceptionFilter implements ExceptionFilter {
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const response = host.switchToHttp().getResponse<Response>();
+    const traceId = activeTraceId();
+    if (traceId && !response.getHeader(TRACE_ID_HEADER)) {
+      response.setHeader(TRACE_ID_HEADER, traceId);
+    }
 
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
@@ -42,11 +62,14 @@ export class UnhandledExceptionFilter implements ExceptionFilter {
         );
       }
 
-      response.status(status).json(
+      const payload =
         typeof body === 'string'
           ? { statusCode: status, message: body }
-          : body,
-      );
+          : typeof body === 'object' && body !== null
+            ? (body as Record<string, unknown>)
+            : { statusCode: status, message: String(body) };
+
+      response.status(status).json(withTraceId(payload));
       return;
     }
 
@@ -71,9 +94,11 @@ export class UnhandledExceptionFilter implements ExceptionFilter {
       `Unhandled exception: ${err.message}`,
     );
 
-    response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-      statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-      message: 'Internal server error',
-    });
+    response.status(HttpStatus.INTERNAL_SERVER_ERROR).json(
+      withTraceId({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: 'Internal server error',
+      }),
+    );
   }
 }

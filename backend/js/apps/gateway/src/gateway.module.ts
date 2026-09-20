@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import {
@@ -7,6 +7,7 @@ import {
   HealthModule,
   RoomlyConfigModule,
   RoomlyConfigService,
+  TraceIdInterceptor,
   UnhandledExceptionFilter,
 } from '@roomly/common';
 import { RedisClientService, RedisModule } from '@roomly/infra';
@@ -53,6 +54,10 @@ import { UsersController } from './user/users.controller';
     UserServiceHttp,
     UserHttpClient,
     AuthHttpClient,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TraceIdInterceptor,
+    },
     {
       provide: APP_FILTER,
       useClass: UnhandledExceptionFilter,

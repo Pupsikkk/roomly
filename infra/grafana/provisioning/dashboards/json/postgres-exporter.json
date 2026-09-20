@@ -45,6 +45,20 @@
         "iconColor": "rgba(0, 211, 255, 1)",
         "name": "Annotations & Alerts",
         "type": "dashboard"
+      },
+      {
+        "name": "HTTP request",
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#F2495C",
+        "expr": "{collector_name=\"roomly-otel-collector\"} | json | res_statusCode != \"\" | trace_id=\"$trace_id\" | trace_id != \"\"",
+        "maxLines": 50,
+        "titleFormat": "HTTP request",
+        "textFormat": "{{Line}}"
       }
     ]
   },
@@ -3243,6 +3257,21 @@
         "tagsQuery": "",
         "type": "query",
         "useTags": false
+      },
+      {
+        "name": "trace_id",
+        "type": "textbox",
+        "label": "Trace ID",
+        "description": "Marks HTTP request time on graphs (from Logs & Traces links).",
+        "query": "",
+        "current": {
+          "selected": true,
+          "text": "",
+          "value": ""
+        },
+        "options": [],
+        "hide": 0,
+        "skipUrlSync": false
       }
     ]
   },
@@ -3278,5 +3307,5 @@
   "timezone": "browser",
   "title": "PostgreSQL (postgres_exporter)",
   "uid": "roomly-postgres",
-  "version": 1
+  "version": 3
 }

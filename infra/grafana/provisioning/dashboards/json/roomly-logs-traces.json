@@ -3,7 +3,7 @@
   "title": "Logs & Traces (Loki + Tempo)",
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 9,
+  "version": 24,
   "refresh": "15s",
   "tags": [
     "roomly",
@@ -61,7 +61,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "**Trace ID** (зверху): фільтр логів / HTTP.\n\n**Logs → Trace:** **View trace** біля `trace_id` (Grafana Explore / Tempo).\n\nЛоги: Nest OTLP → Collector → Loki (`collector.name=roomly-otel-collector`). Body — повний pino JSON (`| json`). Stdout лише для консолі."
+        "content": "**Trace ID** / **Service** (зверху): фільтр логів і HTTP.\n\n**Recent HTTP → Trace ID:** Tempo + Nest/Redis/RabbitMQ/Postgres (±5m, запит у центрі; червона мітка HTTP request на графіках).\n\nЛоги: Nest OTLP → Collector → Loki. Body — повний pino JSON (`| json`)."
       }
     },
     {
@@ -121,6 +121,245 @@
       }
     },
     {
+      "id": 5,
+      "type": "table",
+      "title": "Recent HTTP (Status + Trace ID)",
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 10
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{collector_name=\"roomly-otel-collector\", compose_service=~\"$service\"} |= `$trace_id` | json | res_statusCode != \"\" | line_format `{\"service\":\"{{.compose_service}}\",\"method\":\"{{.req_method}}\",\"path\":\"{{.req_url}}\",\"status\":{{.res_statusCode}},\"ms\":{{.responseTime}},\"trace_id\":\"{{.trace_id}}\",\"from_ms\":{{ sub (__timestamp__ | unixEpochMillis) 300000 }},\"to_ms\":{{ add (__timestamp__ | unixEpochMillis) 300000 }}}`",
+          "queryType": "range",
+          "maxLines": 100
+        }
+      ],
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "Line",
+            "format": "json",
+            "keepTime": true,
+            "replace": true
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "Time",
+                "desc": true
+              }
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Line": true,
+              "labels": true,
+              "tsNs": true,
+              "id": true
+            },
+            "indexByName": {
+              "Time": 0,
+              "service": 1,
+              "method": 2,
+              "path": 3,
+              "status": 4,
+              "ms": 5,
+              "trace_id": 6,
+              "from_ms": 7,
+              "to_ms": 8
+            },
+            "renameByName": {}
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "service"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Service"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "status"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Status"
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 400
+                    },
+                    {
+                      "color": "red",
+                      "value": 500
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "method"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Method"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "path"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Path"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ms"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "ms"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "trace_id"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Trace ID"
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "View trace",
+                    "url": "/explore?orgId=1&left=%7B%22datasource%22:%22tempo%22,%22queries%22:%5B%7B%22query%22:%22${__value.raw}%22,%22queryType%22:%22traceql%22%7D%5D%7D",
+                    "targetBlank": false
+                  },
+                  {
+                    "title": "Nest metrics (±5m)",
+                    "url": "/d/roomly-nest?orgId=1&var-trace_id=${__data.fields.trace_id}&from=${__data.fields.from_ms}&to=${__data.fields.to_ms}&var-service=${__data.fields.service}",
+                    "targetBlank": false
+                  },
+                  {
+                    "title": "Redis (±5m)",
+                    "url": "/d/roomly-redis?orgId=1&var-trace_id=${__data.fields.trace_id}&from=${__data.fields.from_ms}&to=${__data.fields.to_ms}",
+                    "targetBlank": false
+                  },
+                  {
+                    "title": "RabbitMQ (±5m)",
+                    "url": "/d/roomly-rabbitmq?orgId=1&var-trace_id=${__data.fields.trace_id}&from=${__data.fields.from_ms}&to=${__data.fields.to_ms}",
+                    "targetBlank": false
+                  },
+                  {
+                    "title": "Postgres (±5m)",
+                    "url": "/d/roomly-postgres?orgId=1&var-trace_id=${__data.fields.trace_id}&from=${__data.fields.from_ms}&to=${__data.fields.to_ms}",
+                    "targetBlank": false
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "from_ms"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "to_ms"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "id": 3,
       "type": "logs",
       "title": "Recent Nest logs",
@@ -128,7 +367,7 @@
         "h": 14,
         "w": 12,
         "x": 0,
-        "y": 10
+        "y": 22
       },
       "datasource": {
         "type": "loki",
@@ -159,7 +398,7 @@
         "h": 14,
         "w": 12,
         "x": 12,
-        "y": 10
+        "y": 22
       },
       "datasource": {
         "type": "loki",
@@ -177,575 +416,6 @@
         "prettifyLogMessage": true,
         "enableLogDetails": true,
         "sortOrder": "Descending"
-      }
-    },
-    {
-      "id": 5,
-      "type": "table",
-      "title": "Recent HTTP — gateway (Status + Trace ID)",
-      "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 24
-      },
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "{collector_name=\"roomly-otel-collector\", compose_service=\"gateway\"} |= `$trace_id` | json | res_statusCode != \"\" | line_format \"{\\\"method\\\":\\\"{{.req_method}}\\\",\\\"path\\\":\\\"{{.req_url}}\\\",\\\"status\\\":{{.res_statusCode}},\\\"ms\\\":{{.responseTime}},\\\"trace_id\\\":\\\"{{.trace_id}}\\\"}\"",
-          "queryType": "range",
-          "maxLines": 50
-        }
-      ],
-      "transformations": [
-        {
-          "id": "extractFields",
-          "options": {
-            "source": "Line",
-            "format": "json",
-            "keepTime": true,
-            "replace": true
-          }
-        },
-        {
-          "id": "sortBy",
-          "options": {
-            "fields": {},
-            "sort": [
-              {
-                "field": "Time",
-                "desc": true
-              }
-            ]
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Line": true,
-              "labels": true,
-              "tsNs": true,
-              "id": true
-            },
-            "indexByName": {
-              "Time": 0,
-              "method": 1,
-              "path": 2,
-              "status": 3,
-              "ms": 4,
-              "trace_id": 5
-            },
-            "renameByName": {}
-          }
-        }
-      ],
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "footer": {
-          "show": false
-        }
-      },
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "status"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Status"
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
-                }
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": null
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 400
-                    },
-                    {
-                      "color": "red",
-                      "value": 500
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "thresholds"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "method"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Method"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "path"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Path"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "ms"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "ms"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "trace_id"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Trace ID"
-              },
-              {
-                "id": "links",
-                "value": [
-                  {
-                    "title": "View trace",
-                    "url": "/explore?orgId=1&left=%7B%22datasource%22:%22tempo%22,%22queries%22:%5B%7B%22query%22:%22${__value.raw}%22,%22queryType%22:%22traceql%22%7D%5D%7D",
-                    "targetBlank": false
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "id": 6,
-      "type": "table",
-      "title": "Recent HTTP — user-service",
-      "gridPos": {
-        "h": 10,
-        "w": 12,
-        "x": 0,
-        "y": 34
-      },
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "{collector_name=\"roomly-otel-collector\", compose_service=\"user-service\"} |= `$trace_id` | json | res_statusCode != \"\" | line_format \"{\\\"method\\\":\\\"{{.req_method}}\\\",\\\"path\\\":\\\"{{.req_url}}\\\",\\\"status\\\":{{.res_statusCode}},\\\"ms\\\":{{.responseTime}},\\\"trace_id\\\":\\\"{{.trace_id}}\\\"}\"",
-          "queryType": "range",
-          "maxLines": 30
-        }
-      ],
-      "transformations": [
-        {
-          "id": "extractFields",
-          "options": {
-            "source": "Line",
-            "format": "json",
-            "keepTime": true,
-            "replace": true
-          }
-        },
-        {
-          "id": "sortBy",
-          "options": {
-            "fields": {},
-            "sort": [
-              {
-                "field": "Time",
-                "desc": true
-              }
-            ]
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Line": true,
-              "labels": true,
-              "tsNs": true,
-              "id": true
-            },
-            "indexByName": {
-              "Time": 0,
-              "method": 1,
-              "path": 2,
-              "status": 3,
-              "ms": 4,
-              "trace_id": 5
-            },
-            "renameByName": {}
-          }
-        }
-      ],
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "footer": {
-          "show": false
-        }
-      },
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "status"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Status"
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
-                }
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": null
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 400
-                    },
-                    {
-                      "color": "red",
-                      "value": 500
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "thresholds"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "method"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Method"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "path"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Path"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "ms"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "ms"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "trace_id"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Trace ID"
-              },
-              {
-                "id": "links",
-                "value": [
-                  {
-                    "title": "View trace",
-                    "url": "/explore?orgId=1&left=%7B%22datasource%22:%22tempo%22,%22queries%22:%5B%7B%22query%22:%22${__value.raw}%22,%22queryType%22:%22traceql%22%7D%5D%7D",
-                    "targetBlank": false
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "id": 7,
-      "type": "table",
-      "title": "Recent HTTP — notification-service",
-      "gridPos": {
-        "h": 10,
-        "w": 12,
-        "x": 12,
-        "y": 34
-      },
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "{collector_name=\"roomly-otel-collector\", compose_service=\"notification-service\"} |= `$trace_id` | json | res_statusCode != \"\" | line_format \"{\\\"method\\\":\\\"{{.req_method}}\\\",\\\"path\\\":\\\"{{.req_url}}\\\",\\\"status\\\":{{.res_statusCode}},\\\"ms\\\":{{.responseTime}},\\\"trace_id\\\":\\\"{{.trace_id}}\\\"}\"",
-          "queryType": "range",
-          "maxLines": 30
-        }
-      ],
-      "transformations": [
-        {
-          "id": "extractFields",
-          "options": {
-            "source": "Line",
-            "format": "json",
-            "keepTime": true,
-            "replace": true
-          }
-        },
-        {
-          "id": "sortBy",
-          "options": {
-            "fields": {},
-            "sort": [
-              {
-                "field": "Time",
-                "desc": true
-              }
-            ]
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Line": true,
-              "labels": true,
-              "tsNs": true,
-              "id": true
-            },
-            "indexByName": {
-              "Time": 0,
-              "method": 1,
-              "path": 2,
-              "status": 3,
-              "ms": 4,
-              "trace_id": 5
-            },
-            "renameByName": {}
-          }
-        }
-      ],
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "footer": {
-          "show": false
-        }
-      },
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "status"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Status"
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
-                }
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": null
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 400
-                    },
-                    {
-                      "color": "red",
-                      "value": 500
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "thresholds"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "method"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Method"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "path"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Path"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "ms"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "ms"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "trace_id"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Trace ID"
-              },
-              {
-                "id": "links",
-                "value": [
-                  {
-                    "title": "View trace",
-                    "url": "/explore?orgId=1&left=%7B%22datasource%22:%22tempo%22,%22queries%22:%5B%7B%22query%22:%22${__value.raw}%22,%22queryType%22:%22traceql%22%7D%5D%7D",
-                    "targetBlank": false
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "id": 8,
-      "type": "table",
-      "title": "Recent traces (Tempo — gateway)",
-      "description": "Browse recent gateway traces (TraceQL). Paste a Trace ID above to filter logs/HTTP, or open a row in Explore.",
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 44
-      },
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "queryType": "traceql",
-          "query": "{ resource.service.name=\"gateway\" }",
-          "limit": 15,
-          "tableType": "traces"
-        }
-      ],
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm"
       }
     }
   ]

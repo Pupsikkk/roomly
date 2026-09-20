@@ -3,7 +3,7 @@
   "title": "Nest (OTel)",
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 4,
   "refresh": "15s",
   "tags": [
     "roomly",
@@ -33,6 +33,21 @@
           "value": "$__all"
         },
         "refresh": 2
+      },
+      {
+        "name": "trace_id",
+        "type": "textbox",
+        "label": "Trace ID",
+        "description": "Marks HTTP request time on graphs (from Logs & Traces links).",
+        "query": "",
+        "current": {
+          "selected": true,
+          "text": "",
+          "value": ""
+        },
+        "options": [],
+        "hide": 0,
+        "skipUrlSync": false
       }
     ]
   },
@@ -41,8 +56,16 @@
       "id": 1,
       "type": "timeseries",
       "title": "HTTP requests / s (by status)",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
         {
           "refId": "A",
@@ -50,14 +73,27 @@
           "legendFormat": "{{service_name}} {{http_response_status_code}}"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 2,
       "type": "timeseries",
       "title": "HTTP latency p95 (s)",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
         {
           "refId": "A",
@@ -65,14 +101,27 @@
           "legendFormat": "{{service_name}} p95"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 3,
       "type": "timeseries",
       "title": "HTTP 5xx rate",
-      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
         {
           "refId": "A",
@@ -80,14 +129,27 @@
           "legendFormat": "{{service_name}}"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 10,
       "type": "timeseries",
       "title": "HTTP client requests / s",
-      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
         {
           "refId": "A",
@@ -95,14 +157,27 @@
           "legendFormat": "{{service_name}} {{http_response_status_code}}"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 11,
       "type": "timeseries",
       "title": "HTTP client latency p95 (s)",
-      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
         {
           "refId": "A",
@@ -110,14 +185,27 @@
           "legendFormat": "{{service_name}} p95"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 4,
       "type": "timeseries",
       "title": "Event loop utilization",
-      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 15 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 15
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
         {
           "refId": "A",
@@ -125,14 +213,28 @@
           "legendFormat": "{{service_name}}"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "percentunit", "max": 1 }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "max": 1
+        },
+        "overrides": []
+      }
     },
     {
       "id": 12,
       "type": "timeseries",
       "title": "Event loop delay p99",
-      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 15 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 15
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
         {
           "refId": "A",
@@ -140,14 +242,27 @@
           "legendFormat": "{{service_name}}"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 13,
       "type": "timeseries",
       "title": "Process CPU utilization",
-      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 15 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 15
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
         {
           "refId": "A",
@@ -155,14 +270,27 @@
           "legendFormat": "{{service_name}} {{state}}"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 14,
       "type": "timeseries",
       "title": "Process memory",
-      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 22 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 22
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
         {
           "refId": "A",
@@ -170,14 +298,27 @@
           "legendFormat": "{{service_name}} {{state}}"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 15,
       "type": "timeseries",
       "title": "V8 heap used",
-      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 22 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 22
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
         {
           "refId": "A",
@@ -185,14 +326,27 @@
           "legendFormat": "{{service_name}}"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 16,
       "type": "timeseries",
       "title": "V8 GC duration p95",
-      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 22 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 22
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
         {
           "refId": "A",
@@ -200,14 +354,27 @@
           "legendFormat": "{{service_name}} p95"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 5,
       "type": "timeseries",
       "title": "Log lines / s (Loki)",
-      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 29 },
-      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 29
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
       "targets": [
         {
           "refId": "A",
@@ -216,5 +383,35 @@
         }
       ]
     }
-  ]
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "name": "HTTP request",
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#F2495C",
+        "expr": "{collector_name=\"roomly-otel-collector\"} | json | res_statusCode != \"\" | trace_id=\"$trace_id\" | trace_id != \"\"",
+        "maxLines": 50,
+        "titleFormat": "HTTP request",
+        "textFormat": "{{Line}}"
+      }
+    ]
+  }
 }

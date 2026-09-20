@@ -2,7 +2,7 @@ import './otel';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { RoomlyConfigService } from '@roomly/common';
+import { RoomlyConfigService, TRACE_ID_HEADER } from '@roomly/common';
 import { AUTH_COOKIE_NAMES } from '@roomly/contracts';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
@@ -47,8 +47,9 @@ async function bootstrap() {
 void bootstrap();
 
 function buildCorsOptions(origins: string[]) {
+  const exposedHeaders = [TRACE_ID_HEADER];
   if (origins.includes('*')) {
-    return { origin: true, credentials: true };
+    return { origin: true, credentials: true, exposedHeaders };
   }
-  return { origin: origins, credentials: true };
+  return { origin: origins, credentials: true, exposedHeaders };
 }
