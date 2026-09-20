@@ -1,9 +1,9 @@
 {
   "uid": "roomly-nest",
-  "title": "Roomly Nest (OTel)",
+  "title": "Nest (OTel)",
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "15s",
   "tags": [
     "roomly",
@@ -14,131 +14,204 @@
     "from": "now-30m",
     "to": "now"
   },
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "type": "query",
+        "label": "Service",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": "label_values(http_server_request_duration_count, service_name)",
+        "includeAll": true,
+        "allValue": ".+",
+        "multi": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "refresh": 2
+      }
+    ]
+  },
   "panels": [
     {
       "id": 1,
       "type": "timeseries",
       "title": "HTTP requests / s (by status)",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 0
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (http_response_status_code, service_name) (rate(http_server_request_duration_count[1m]))",
+          "expr": "sum by (http_response_status_code, service_name) (rate(http_server_request_duration_count{service_name=~\"$service\"}[1m]))",
           "legendFormat": "{{service_name}} {{http_response_status_code}}"
         }
       ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps"
-        },
-        "overrides": []
-      }
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
     },
     {
       "id": 2,
       "type": "timeseries",
       "title": "HTTP latency p95 (s)",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 0
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
           "refId": "A",
-          "expr": "histogram_quantile(0.95, sum by (le, service_name) (rate(http_server_request_duration_bucket[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (le, service_name) (rate(http_server_request_duration_bucket{service_name=~\"$service\"}[5m])))",
           "legendFormat": "{{service_name}} p95"
         }
       ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s"
-        },
-        "overrides": []
-      }
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
     },
     {
       "id": 3,
       "type": "timeseries",
       "title": "HTTP 5xx rate",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 8
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (service_name) (rate(http_server_request_duration_count{http_response_status_code=~\"5..\"}[1m]))",
+          "expr": "sum by (service_name) (rate(http_server_request_duration_count{service_name=~\"$service\",http_response_status_code=~\"5..\"}[1m]))",
           "legendFormat": "{{service_name}}"
         }
       ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps"
-        },
-        "overrides": []
-      }
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "HTTP client requests / s",
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (service_name, http_response_status_code) (rate(http_client_request_duration_count{service_name=~\"$service\"}[1m]))",
+          "legendFormat": "{{service_name}} {{http_response_status_code}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "HTTP client latency p95 (s)",
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le, service_name) (rate(http_client_request_duration_bucket{service_name=~\"$service\"}[5m])))",
+          "legendFormat": "{{service_name}} p95"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
     },
     {
       "id": 4,
       "type": "timeseries",
-      "title": "Node event loop utilization",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 8
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
+      "title": "Event loop utilization",
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 15 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
           "refId": "A",
-          "expr": "nodejs_eventloop_utilization",
+          "expr": "nodejs_eventloop_utilization{service_name=~\"$service\"}",
           "legendFormat": "{{service_name}}"
         }
-      ]
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "max": 1 }, "overrides": [] }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Event loop delay p99",
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 15 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "nodejs_eventloop_delay_p99{service_name=~\"$service\"}",
+          "legendFormat": "{{service_name}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Process CPU utilization",
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 15 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "process_cpu_utilization{service_name=~\"$service\"}",
+          "legendFormat": "{{service_name}} {{state}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [] }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Process memory",
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 22 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "process_memory_usage{service_name=~\"$service\"}",
+          "legendFormat": "{{service_name}} {{state}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "V8 heap used",
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 22 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "v8js_memory_heap_used{service_name=~\"$service\"}",
+          "legendFormat": "{{service_name}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "V8 GC duration p95",
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 22 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le, service_name) (rate(v8js_gc_duration_bucket{service_name=~\"$service\"}[5m])))",
+          "legendFormat": "{{service_name}} p95"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
     },
     {
       "id": 5,
       "type": "timeseries",
       "title": "Log lines / s (Loki)",
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 16
-      },
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 29 },
+      "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (compose_service) (rate({compose_service=~\"gateway|user-service|notification-service\"}[1m]))",
+          "expr": "sum by (compose_service) (rate({compose_service=~\"$service\"}[1m]))",
           "legendFormat": "{{compose_service}}"
         }
       ]

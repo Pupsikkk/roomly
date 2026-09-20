@@ -45,7 +45,7 @@ type FlaggedFn = ((...args: unknown[]) => unknown) & {
  * - `work: 'local'` — default business logic
  *
  * Auto-instrumented clients (HTTP/pg/redis/RMQ) already use SpanKind.CLIENT;
- * filter by `span.kind` or attribute `roomly.work` in Jaeger.
+ * filter by `span.kind` or attribute `roomly.work` in Tempo / Grafana.
  */
 export async function withSpan<T>(
   name: string,

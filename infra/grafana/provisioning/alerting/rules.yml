@@ -17,7 +17,7 @@ groups:
         execErrState: Error
         annotations:
           summary: Nest services are returning HTTP 5xx
-          description: Open Roomly Nest and Logs and Traces dashboards, then follow log TraceID to Jaeger.
+          description: Open Roomly Nest and Logs and Traces dashboards, then follow log TraceID to Tempo.
         labels:
           severity: critical
           team: roomly

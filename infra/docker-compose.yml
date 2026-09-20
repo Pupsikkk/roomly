@@ -69,15 +69,17 @@ services:
       timeout: 5s
       retries: 10
 
-  # Tracing backend (UI + OTLP on Docker network only — apps talk to otel-collector).
-  jaeger:
-    image: jaegertracing/all-in-one:1.57
-    environment:
-      COLLECTOR_OTLP_ENABLED: "true"
+  # Tempo — traces (OTLP from collector; UI via Grafana Explore).
+  tempo:
+    image: grafana/tempo:2.7.2
+    command: ["-config.file=/etc/tempo.yaml", "-target=all"]
+    volumes:
+      - ./tempo/tempo-config.yml:/etc/tempo.yaml:ro
+      - ./tempo/data:/var/tempo
     ports:
-      - "${JAEGER_UI_PORT:-16686}:16686"
+      - "${TEMPO_HTTP_PORT:-3200}:3200"
 
-  # Educational OTLP hop: Nest → Collector → Jaeger / Loki / Prometheus.
+  # Educational OTLP hop: Nest → Collector → Tempo / Loki / Prometheus.
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.129.1
     command: ["--config=/etc/otelcol/config.yaml"]
@@ -88,7 +90,7 @@ services:
       - "${OTEL_COLLECTOR_OTLP_GRPC_PORT:-4317}:4317"
       - "${OTEL_COLLECTOR_PROM_PORT:-8889}:8889"
     depends_on:
-      - jaeger
+      - tempo
       - loki
 
   # Log store (OTLP via otel-collector; Nest stdout is console-only).
@@ -101,7 +103,7 @@ services:
     ports:
       - "${LOKI_PORT:-3100}:3100"
 
-  # Unified UI: Loki logs + Jaeger traces + Prometheus metrics.
+  # Unified UI: Loki logs + Tempo traces + Prometheus metrics.
   grafana:
     image: grafana/grafana:11.5.2
     environment:
@@ -118,7 +120,7 @@ services:
       - "${GRAFANA_PORT:-3003}:3000"
     depends_on:
       - loki
-      - jaeger
+      - tempo
       - otel-collector
       - prometheus
 

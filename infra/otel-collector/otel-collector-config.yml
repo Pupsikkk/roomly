@@ -1,7 +1,7 @@
 # OpenTelemetry Collector (educational hop between Nest SDK and backends).
 #
 # Flow (this repo):
-#   Nest OTLP traces   →  Collector  →  Jaeger
+#   Nest OTLP traces   →  Collector  →  Tempo
 #   Nest OTLP logs     →  Collector  →  Loki   (stdout is console-only)
 #   Nest OTLP metrics  →  Collector  →  Prometheus scrape (:8889)
 #
@@ -20,7 +20,7 @@ processors:
   batch:
     timeout: 1s
     send_batch_size: 1024
-  # Visible in Jaeger / Loki / Prometheus — proves telemetry passed the Collector.
+  # Visible in Tempo / Loki / Prometheus — proves telemetry passed the Collector.
   # compose_service mirrors service.name for existing LogQL / PromQL dashboards.
   resource:
     attributes:
@@ -41,9 +41,8 @@ processors:
         - 'attributes["nest.context"] == "NestFactory"'
 
 exporters:
-  # Jaeger all-in-one accepts OTLP on the Docker network (not published to host).
-  otlp/jaeger:
-    endpoint: jaeger:4317
+  otlp/tempo:
+    endpoint: tempo:4317
     tls:
       insecure: true
   # Loki 3 native OTLP ingest (exporter appends /v1/logs).
@@ -72,7 +71,7 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch, resource]
-      exporters: [otlp/jaeger, debug]
+      exporters: [otlp/tempo, debug]
     logs:
       receivers: [otlp]
       processors: [filter/drop_nest_bootstrap, batch, resource]

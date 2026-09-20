@@ -54,18 +54,18 @@ docker compose -f infra/docker-compose.yml -f infra/docker-compose.dev.yml up --
 | user-service | `user-service` | 3001 (лише Docker network) |
 | notification-service | `notification-service` | 3002 (лише Docker network) |
 
-Tracing: Nest OTLP → **otel-collector** (`:4318`) → Jaeger UI `http://localhost:16686`. SDK увімкнений, якщо задано `OTEL_EXPORTER_OTLP_ENDPOINT`.
+Tracing: Nest OTLP → **otel-collector** (`:4318`) → **Tempo** (Grafana Explore). SDK увімкнений, якщо задано `OTEL_EXPORTER_OTLP_ENDPOINT`.
 
 Logging: **nestjs-pino** — JSON у stdout (консоль) + **OTLP logs** → Collector → Loki (`OTEL_LOGS_EXPORTER=otlp` за замовчуванням; `none` щоб вимкнути). Поля: `service`, `message`, `level`, за наявності span — `trace_id` / `span_id`. HTTP access-логи автоматично (крім `/health`). `LOG_LEVEL` (default `info`).
 
-Збір логів (compose): **OTLP → Collector → Loki** → Grafana (`http://localhost:3003`). Explore: `{compose_service="gateway"}` або `{collector_name="roomly-otel-collector"}`. Лінк TraceID → Jaeger. Body лога — повний pino JSON (зручно `| json`).
+Збір логів (compose): **OTLP → Collector → Loki** → Grafana (`http://localhost:3003`). Explore: `{compose_service="gateway"}` або `{collector_name="roomly-otel-collector"}`. Лінк TraceID → Tempo. Body лога — повний pino JSON (зручно `| json`).
 
 Метрики: Nest OTLP → **otel-collector** (`:8889`) → **Prometheus** (`http://localhost:9090`) → Grafana. Вимкнути: `OTEL_METRICS_DISABLED=true`.
 
 Зв’язок лог ↔ трейс:
 
 1. Grafana Explore (Loki) → рядок з `trace_id` → **View trace**, або
-2. Jaeger UI / Grafana Jaeger → Trace ID → `docker compose … logs | grep <trace_id>`
+2. Grafana Explore (Tempo) → Trace ID → `docker compose … logs | grep <trace_id>`
 
 ## Env
 

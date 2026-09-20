@@ -1,14 +1,14 @@
 {
   "uid": "roomly-logs-traces",
-  "title": "Roomly Logs & Traces (Loki + Jaeger)",
+  "title": "Logs & Traces (Loki + Tempo)",
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 8,
+  "version": 9,
   "refresh": "15s",
   "tags": [
     "roomly",
     "loki",
-    "jaeger",
+    "tempo",
     "logs",
     "traces"
   ],
@@ -61,7 +61,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "**Trace ID** (зверху): фільтр логів / HTTP.\n\n**Logs → Trace:** **View trace** біля `trace_id` (Grafana Explore / Jaeger).\n\nЛоги: Nest OTLP → Collector → Loki (`collector.name=roomly-otel-collector`). Body — повний pino JSON (`| json`). Stdout лише для консолі."
+        "content": "**Trace ID** (зверху): фільтр логів / HTTP.\n\n**Logs → Trace:** **View trace** біля `trace_id` (Grafana Explore / Tempo).\n\nЛоги: Nest OTLP → Collector → Loki (`collector.name=roomly-otel-collector`). Body — повний pino JSON (`| json`). Stdout лише для консолі."
       }
     },
     {
@@ -349,7 +349,7 @@
                 "value": [
                   {
                     "title": "View trace",
-                    "url": "/explore?orgId=1&left=%7B%22datasource%22:%22jaeger%22,%22queries%22:%5B%7B%22query%22:%22${__value.raw}%22%7D%5D%7D",
+                    "url": "/explore?orgId=1&left=%7B%22datasource%22:%22tempo%22,%22queries%22:%5B%7B%22query%22:%22${__value.raw}%22,%22queryType%22:%22traceql%22%7D%5D%7D",
                     "targetBlank": false
                   }
                 ]
@@ -529,7 +529,7 @@
                 "value": [
                   {
                     "title": "View trace",
-                    "url": "/explore?orgId=1&left=%7B%22datasource%22:%22jaeger%22,%22queries%22:%5B%7B%22query%22:%22${__value.raw}%22%7D%5D%7D",
+                    "url": "/explore?orgId=1&left=%7B%22datasource%22:%22tempo%22,%22queries%22:%5B%7B%22query%22:%22${__value.raw}%22,%22queryType%22:%22traceql%22%7D%5D%7D",
                     "targetBlank": false
                   }
                 ]
@@ -709,7 +709,7 @@
                 "value": [
                   {
                     "title": "View trace",
-                    "url": "/explore?orgId=1&left=%7B%22datasource%22:%22jaeger%22,%22queries%22:%5B%7B%22query%22:%22${__value.raw}%22%7D%5D%7D",
+                    "url": "/explore?orgId=1&left=%7B%22datasource%22:%22tempo%22,%22queries%22:%5B%7B%22query%22:%22${__value.raw}%22,%22queryType%22:%22traceql%22%7D%5D%7D",
                     "targetBlank": false
                   }
                 ]
@@ -722,8 +722,8 @@
     {
       "id": 8,
       "type": "table",
-      "title": "Recent traces (Jaeger search — gateway)",
-      "description": "Browse recent traces. To open a specific ID: paste it in Trace ID above (filters logs/HTTP) or click View trace on a row.",
+      "title": "Recent traces (Tempo — gateway)",
+      "description": "Browse recent gateway traces (TraceQL). Paste a Trace ID above to filter logs/HTTP, or open a row in Explore.",
       "gridPos": {
         "h": 8,
         "w": 24,
@@ -731,15 +731,16 @@
         "y": 44
       },
       "datasource": {
-        "type": "jaeger",
-        "uid": "jaeger"
+        "type": "tempo",
+        "uid": "tempo"
       },
       "targets": [
         {
           "refId": "A",
-          "queryType": "search",
-          "service": "gateway",
-          "limit": 15
+          "queryType": "traceql",
+          "query": "{ resource.service.name=\"gateway\" }",
+          "limit": 15,
+          "tableType": "traces"
         }
       ],
       "options": {
