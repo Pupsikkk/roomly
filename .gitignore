@@ -14,6 +14,8 @@ infra/grafana/data/**
 !infra/grafana/data/.gitkeep
 infra/prometheus/data/**
 !infra/prometheus/data/.gitkeep
+infra/tempo/data/**
+!infra/tempo/data/.gitkeep
 
 # Dev JWT signing keys (generate locally: npm run auth:keys)
 infra/secrets/**/*.pem
