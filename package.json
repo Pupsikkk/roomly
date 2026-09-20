@@ -5,6 +5,8 @@
   "scripts": {
     "up": "node scripts/roomly.mjs up",
     "dev": "node scripts/roomly.mjs dev",
+    "restart": "npm run down && npm run up",
+    "restart:dev": "npm run down && npm run dev",
     "infra": "node scripts/roomly.mjs infra",
     "down": "node scripts/roomly.mjs down",
     "build:apps": "node scripts/roomly.mjs build",

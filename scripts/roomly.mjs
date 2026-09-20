@@ -32,8 +32,8 @@ const INFRA_SERVICES = [
   'redis-exporter',
   'rabbitmq',
   'jaeger',
+  'otel-collector',
   'loki',
-  'promtail',
   'grafana',
   'prometheus',
 ];
@@ -130,7 +130,7 @@ function cmdInfra() {
   ensureEnv();
   dockerCompose([], 'up', '-d', ...INFRA_SERVICES);
   console.log(
-    'Infrastructure is up (postgres, redis, rabbitmq, jaeger, loki, promtail, grafana, prometheus)',
+    'Infrastructure is up (postgres, redis, rabbitmq, jaeger, otel-collector, loki, grafana, prometheus)',
   );
   console.log(`  Grafana:     http://localhost:${env('GRAFANA_PORT', '3003')}`);
   console.log(`  Jaeger:      http://localhost:${env('JAEGER_UI_PORT', '16686')}`);
@@ -163,7 +163,7 @@ function cmdHelp() {
   npm run up          start infra + Nest services (detached, prod image)
   npm run dev         hot-reload (infra/docker-compose.dev.yml)
   npm run auth:keys   generate local JWT RSA private key (once; skip if exists)
-  npm run infra       only postgres, redis, rabbitmq, jaeger, loki, grafana, prometheus
+  npm run infra       only postgres, redis, rabbitmq, jaeger, otel-collector, loki, grafana, prometheus
   npm run down        stop all services
   npm run build:apps  rebuild Nest image (gateway)
   npm run logs        follow logs (optional: npm run logs -- gateway)

@@ -1,12 +1,13 @@
 import {
-  CanActivate,
-  ExecutionContext,
   Injectable,
   UnauthorizedException,
+  type CanActivate,
+  type ExecutionContext,
 } from '@nestjs/common';
 import { AUTH_COOKIE_NAMES, type AccessTokenClaims } from '@roomly/contracts';
 import type { Request } from 'express';
 import { JwtVerifierService } from './jwt-verifier.service';
+import { Traced } from '@roomly/common';
 
 export type AuthenticatedRequest = Request & {
   user?: AccessTokenClaims;
@@ -17,6 +18,7 @@ export type AuthenticatedRequest = Request & {
 export class JwtAuthGuard implements CanActivate {
   constructor(private readonly verifier: JwtVerifierService) {}
 
+  @Traced()
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const token = extractAccessToken(request);

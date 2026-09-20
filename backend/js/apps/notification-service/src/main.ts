@@ -1,4 +1,4 @@
-import './tracing';
+import './otel';
 import { NestFactory } from '@nestjs/core';
 import { RoomlyConfigService } from '@roomly/common';
 import { Logger } from 'nestjs-pino';

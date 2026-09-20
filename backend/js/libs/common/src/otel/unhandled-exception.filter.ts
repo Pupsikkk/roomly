@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { Logger } from 'nestjs-pino';
-import { recordActiveSpanError } from '../tracing/record-active-span-error';
+import { recordActiveSpanError } from './record-active-span-error';
 
 /**
  * Catch-all for unexpected failures (and HTTP 5xx).

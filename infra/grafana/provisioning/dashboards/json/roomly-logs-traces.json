@@ -3,7 +3,7 @@
   "title": "Roomly Logs & Traces (Loki + Jaeger)",
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 8,
   "refresh": "15s",
   "tags": [
     "roomly",
@@ -18,6 +18,20 @@
   },
   "templating": {
     "list": [
+      {
+        "name": "trace_id",
+        "type": "textbox",
+        "label": "Trace ID",
+        "description": "Filter logs / HTTP by trace ID. Leave empty to show all.",
+        "query": "",
+        "current": {
+          "selected": true,
+          "text": "",
+          "value": ""
+        },
+        "options": [],
+        "hide": 0
+      },
       {
         "name": "service",
         "type": "custom",
@@ -40,14 +54,14 @@
       "type": "text",
       "title": "How to correlate",
       "gridPos": {
-        "h": 4,
+        "h": 3,
         "w": 24,
         "x": 0,
         "y": 0
       },
       "options": {
         "mode": "markdown",
-        "content": "**Logs \u2192 Trace:** \u0443 \u043f\u0430\u043d\u0435\u043b\u0456 \u043b\u043e\u0433\u0456\u0432 \u043a\u043b\u0456\u043a\u043d\u0438 **View trace** \u0431\u0456\u043b\u044f `trace_id` (Loki derived field \u2192 Jaeger).\n\n**Trace \u2192 Logs:** Explore \u2192 datasource **Jaeger** \u2192 \u0432\u0456\u0434\u043a\u0440\u0438\u0439 span \u2192 **Logs for this span**.\n\n**Jaeger UI:** [http://localhost:16686](http://localhost:16686) \u00b7 **Explore:** \u043b\u0456\u0432\u0435 \u043c\u0435\u043d\u044e \u2192 Explore \u2192 Loki / Jaeger."
+        "content": "**Trace ID** (зверху): фільтр логів / HTTP.\n\n**Logs → Trace:** **View trace** біля `trace_id` (Grafana Explore / Jaeger).\n\nЛоги: Nest OTLP → Collector → Loki (`collector.name=roomly-otel-collector`). Body — повний pino JSON (`| json`). Stdout лише для консолі."
       }
     },
     {
@@ -55,10 +69,10 @@
       "type": "timeseries",
       "title": "Log volume / s (by service)",
       "gridPos": {
-        "h": 8,
+        "h": 7,
         "w": 12,
         "x": 0,
-        "y": 4
+        "y": 3
       },
       "datasource": {
         "type": "loki",
@@ -67,7 +81,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (compose_service) (rate({compose_service=~\"$service\"}[1m]))",
+          "expr": "sum by (compose_service) (rate({compose_service=~\"$service\"} |= `$trace_id`[1m]))",
           "legendFormat": "{{compose_service}}"
         }
       ],
@@ -83,10 +97,10 @@
       "type": "timeseries",
       "title": "Warn + error log rate",
       "gridPos": {
-        "h": 8,
+        "h": 7,
         "w": 12,
         "x": 12,
-        "y": 4
+        "y": 3
       },
       "datasource": {
         "type": "loki",
@@ -95,7 +109,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (compose_service) (rate({compose_service=~\"$service\"} | json | level=~\"(40|50|warn|error|WARN|ERROR)\" [1m]))",
+          "expr": "sum by (compose_service) (rate({compose_service=~\"$service\"} |= `$trace_id` | json | level=~\"(40|50|warn|error|WARN|ERROR)\" [1m]))",
           "legendFormat": "{{compose_service}}"
         }
       ],
@@ -109,12 +123,12 @@
     {
       "id": 3,
       "type": "logs",
-      "title": "Recent Nest logs (click TraceID \u2192 Jaeger)",
+      "title": "Recent Nest logs",
       "gridPos": {
-        "h": 12,
-        "w": 24,
+        "h": 14,
+        "w": 12,
         "x": 0,
-        "y": 12
+        "y": 10
       },
       "datasource": {
         "type": "loki",
@@ -123,7 +137,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "{compose_service=~\"$service\"} | json"
+          "expr": "{compose_service=~\"$service\"} |= `$trace_id` | json"
         }
       ],
       "options": {
@@ -142,10 +156,10 @@
       "type": "logs",
       "title": "Errors / warnings only",
       "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 24
+        "h": 14,
+        "w": 12,
+        "x": 12,
+        "y": 10
       },
       "datasource": {
         "type": "loki",
@@ -154,7 +168,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "{compose_service=~\"$service\"} | json | level=~\"(40|50|warn|error|WARN|ERROR)\""
+          "expr": "{compose_service=~\"$service\"} |= `$trace_id` | json | level=~\"(40|50|warn|error|WARN|ERROR)\""
         }
       ],
       "options": {
@@ -168,12 +182,553 @@
     {
       "id": 5,
       "type": "table",
-      "title": "Recent traces (Jaeger search \u2014 gateway)",
+      "title": "Recent HTTP — gateway (Status + Trace ID)",
       "gridPos": {
         "h": 10,
         "w": 24,
         "x": 0,
+        "y": 24
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{collector_name=\"roomly-otel-collector\", compose_service=\"gateway\"} |= `$trace_id` | json | res_statusCode != \"\" | line_format \"{\\\"method\\\":\\\"{{.req_method}}\\\",\\\"path\\\":\\\"{{.req_url}}\\\",\\\"status\\\":{{.res_statusCode}},\\\"ms\\\":{{.responseTime}},\\\"trace_id\\\":\\\"{{.trace_id}}\\\"}\"",
+          "queryType": "range",
+          "maxLines": 50
+        }
+      ],
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "Line",
+            "format": "json",
+            "keepTime": true,
+            "replace": true
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "Time",
+                "desc": true
+              }
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Line": true,
+              "labels": true,
+              "tsNs": true,
+              "id": true
+            },
+            "indexByName": {
+              "Time": 0,
+              "method": 1,
+              "path": 2,
+              "status": 3,
+              "ms": 4,
+              "trace_id": 5
+            },
+            "renameByName": {}
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "status"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Status"
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 400
+                    },
+                    {
+                      "color": "red",
+                      "value": 500
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "method"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Method"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "path"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Path"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ms"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "ms"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "trace_id"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Trace ID"
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "View trace",
+                    "url": "/explore?orgId=1&left=%7B%22datasource%22:%22jaeger%22,%22queries%22:%5B%7B%22query%22:%22${__value.raw}%22%7D%5D%7D",
+                    "targetBlank": false
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Recent HTTP — user-service",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
         "y": 34
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{collector_name=\"roomly-otel-collector\", compose_service=\"user-service\"} |= `$trace_id` | json | res_statusCode != \"\" | line_format \"{\\\"method\\\":\\\"{{.req_method}}\\\",\\\"path\\\":\\\"{{.req_url}}\\\",\\\"status\\\":{{.res_statusCode}},\\\"ms\\\":{{.responseTime}},\\\"trace_id\\\":\\\"{{.trace_id}}\\\"}\"",
+          "queryType": "range",
+          "maxLines": 30
+        }
+      ],
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "Line",
+            "format": "json",
+            "keepTime": true,
+            "replace": true
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "Time",
+                "desc": true
+              }
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Line": true,
+              "labels": true,
+              "tsNs": true,
+              "id": true
+            },
+            "indexByName": {
+              "Time": 0,
+              "method": 1,
+              "path": 2,
+              "status": 3,
+              "ms": 4,
+              "trace_id": 5
+            },
+            "renameByName": {}
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "status"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Status"
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 400
+                    },
+                    {
+                      "color": "red",
+                      "value": 500
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "method"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Method"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "path"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Path"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ms"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "ms"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "trace_id"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Trace ID"
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "View trace",
+                    "url": "/explore?orgId=1&left=%7B%22datasource%22:%22jaeger%22,%22queries%22:%5B%7B%22query%22:%22${__value.raw}%22%7D%5D%7D",
+                    "targetBlank": false
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Recent HTTP — notification-service",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 34
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{collector_name=\"roomly-otel-collector\", compose_service=\"notification-service\"} |= `$trace_id` | json | res_statusCode != \"\" | line_format \"{\\\"method\\\":\\\"{{.req_method}}\\\",\\\"path\\\":\\\"{{.req_url}}\\\",\\\"status\\\":{{.res_statusCode}},\\\"ms\\\":{{.responseTime}},\\\"trace_id\\\":\\\"{{.trace_id}}\\\"}\"",
+          "queryType": "range",
+          "maxLines": 30
+        }
+      ],
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "Line",
+            "format": "json",
+            "keepTime": true,
+            "replace": true
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "Time",
+                "desc": true
+              }
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Line": true,
+              "labels": true,
+              "tsNs": true,
+              "id": true
+            },
+            "indexByName": {
+              "Time": 0,
+              "method": 1,
+              "path": 2,
+              "status": 3,
+              "ms": 4,
+              "trace_id": 5
+            },
+            "renameByName": {}
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "status"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Status"
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 400
+                    },
+                    {
+                      "color": "red",
+                      "value": 500
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "method"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Method"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "path"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Path"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ms"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "ms"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "trace_id"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Trace ID"
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "View trace",
+                    "url": "/explore?orgId=1&left=%7B%22datasource%22:%22jaeger%22,%22queries%22:%5B%7B%22query%22:%22${__value.raw}%22%7D%5D%7D",
+                    "targetBlank": false
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "type": "table",
+      "title": "Recent traces (Jaeger search — gateway)",
+      "description": "Browse recent traces. To open a specific ID: paste it in Trace ID above (filters logs/HTTP) or click View trace on a row.",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 44
       },
       "datasource": {
         "type": "jaeger",
@@ -184,59 +739,13 @@
           "refId": "A",
           "queryType": "search",
           "service": "gateway",
-          "limit": 20
+          "limit": 15
         }
       ],
       "options": {
         "showHeader": true,
         "cellHeight": "sm"
       }
-    },
-    {
-      "id": 6,
-      "type": "table",
-      "title": "Recent traces (Jaeger search \u2014 user-service)",
-      "gridPos": {
-        "h": 10,
-        "w": 12,
-        "x": 0,
-        "y": 44
-      },
-      "datasource": {
-        "type": "jaeger",
-        "uid": "jaeger"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "queryType": "search",
-          "service": "user-service",
-          "limit": 15
-        }
-      ]
-    },
-    {
-      "id": 7,
-      "type": "table",
-      "title": "Recent traces (Jaeger search \u2014 notification-service)",
-      "gridPos": {
-        "h": 10,
-        "w": 12,
-        "x": 12,
-        "y": 44
-      },
-      "datasource": {
-        "type": "jaeger",
-        "uid": "jaeger"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "queryType": "search",
-          "service": "notification-service",
-          "limit": 15
-        }
-      ]
     }
   ]
 }

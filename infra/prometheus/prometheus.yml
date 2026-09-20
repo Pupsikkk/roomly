@@ -1,16 +1,15 @@
-# Prometheus scrapes Nest /metrics + infra exporters.
+# Prometheus scrapes Nest metrics via OTEL Collector + infra exporters.
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
 scrape_configs:
+  # Nest OTLP metrics → Collector prometheus exporter.
   - job_name: roomly-nest
     metrics_path: /metrics
     static_configs:
       - targets:
-          - gateway:3000
-          - user-service:3001
-          - notification-service:3002
+          - otel-collector:8889
         labels:
           project: roomly
 

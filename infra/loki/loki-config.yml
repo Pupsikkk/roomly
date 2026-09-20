@@ -1,4 +1,5 @@
 # Single-process Loki for local / docker-compose (filesystem storage).
+# Ingest: OTLP from otel-collector (http://loki:3100/otlp).
 auth_enabled: false
 
 server:
@@ -31,10 +32,28 @@ schema_config:
 ruler:
   alertmanager_url: http://localhost:9093
 
+# Index compose_service (set by Collector from service.name) alongside defaults.
+distributor:
+  otlp_config:
+    default_resource_attributes_as_index_labels:
+      - service.name
+      - service.namespace
+      - deployment.environment
+      - deployment.environment.name
+      - compose_service
+      - collector.name
+
 limits_config:
   allow_structured_metadata: true
   reject_old_samples: true
   reject_old_samples_max_age: 168h
+  otlp_config:
+    resource_attributes:
+      attributes_config:
+        - action: index_label
+          attributes:
+            - compose_service
+            - collector.name
 
 analytics:
   reporting_enabled: false

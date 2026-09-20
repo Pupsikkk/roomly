@@ -69,17 +69,29 @@ services:
       timeout: 5s
       retries: 10
 
-  # Minimal tracing backend (OTLP in → UI).
+  # Tracing backend (UI + OTLP on Docker network only — apps talk to otel-collector).
   jaeger:
     image: jaegertracing/all-in-one:1.57
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
     ports:
       - "${JAEGER_UI_PORT:-16686}:16686"
-      - "${JAEGER_OTLP_HTTP_PORT:-4318}:4318"
-      - "${JAEGER_OTLP_GRPC_PORT:-4317}:4317"
 
-  # Log store (Promtail scrapes Docker stdout → here).
+  # Educational OTLP hop: Nest → Collector → Jaeger / Loki / Prometheus.
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.129.1
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector/otel-collector-config.yml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "${OTEL_COLLECTOR_OTLP_HTTP_PORT:-4318}:4318"
+      - "${OTEL_COLLECTOR_OTLP_GRPC_PORT:-4317}:4317"
+      - "${OTEL_COLLECTOR_PROM_PORT:-8889}:8889"
+    depends_on:
+      - jaeger
+      - loki
+
+  # Log store (OTLP via otel-collector; Nest stdout is console-only).
   loki:
     image: grafana/loki:3.4.2
     command: ["-config.file=/etc/loki/loki-config.yml"]
@@ -88,16 +100,6 @@ services:
       - ./loki/data:/loki
     ports:
       - "${LOKI_PORT:-3100}:3100"
-
-  # Scrapes roomly compose container logs into Loki.
-  promtail:
-    image: grafana/promtail:3.4.2
-    command: ["-config.file=/etc/promtail/promtail-config.yml"]
-    volumes:
-      - ./promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    depends_on:
-      - loki
 
   # Unified UI: Loki logs + Jaeger traces + Prometheus metrics.
   grafana:
@@ -117,9 +119,10 @@ services:
     depends_on:
       - loki
       - jaeger
+      - otel-collector
       - prometheus
 
-  # Metrics store (scrapes Nest /metrics).
+  # Metrics store (scrapes Collector :8889 + infra exporters).
   prometheus:
     image: prom/prometheus:v3.2.1
     command:
@@ -131,6 +134,8 @@ services:
       - ./prometheus/data:/prometheus
     ports:
       - "${PROMETHEUS_PORT:-9090}:9090"
+    depends_on:
+      - otel-collector
 
   gateway:
     build:
@@ -155,7 +160,7 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      jaeger:
+      otel-collector:
         condition: service_started
 
   # One-shot: apply user_db migrations before user-service replicas start
@@ -198,7 +203,7 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      jaeger:
+      otel-collector:
         condition: service_started
 
   notification-service:
@@ -215,5 +220,5 @@ services:
         condition: service_started
       rabbitmq:
         condition: service_healthy
-      jaeger:
+      otel-collector:
         condition: service_started

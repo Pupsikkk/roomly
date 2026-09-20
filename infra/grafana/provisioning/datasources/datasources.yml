@@ -12,9 +12,18 @@ datasources:
       timeout: 60
       maxLines: 1000
       derivedFields:
+        # OTLP body is full pino JSON
         - name: TraceID
           datasourceUid: jaeger
           matcherRegex: '"trace_id"\s*:\s*"([a-fA-F0-9]+)"'
+          url: '$${__value.raw}'
+          urlDisplayLabel: View trace
+        # Also as Loki label / structured metadata from OTel context
+        - name: TraceID
+          datasourceUid: jaeger
+          matcherRegex: '([a-fA-F0-9]{32})'
+          matcherType: label
+          match: 'trace_id'
           url: '$${__value.raw}'
           urlDisplayLabel: View trace
 
@@ -32,7 +41,7 @@ datasources:
         filterByTraceID: false
         filterBySpanID: false
         customQuery: true
-        query: '{compose_service=~".+"} | json | trace_id=`$${__span.traceId}`'
+        query: '{compose_service=~".+"} | trace_id=`$${__span.traceId}`'
       nodeGraph:
         enabled: true
 

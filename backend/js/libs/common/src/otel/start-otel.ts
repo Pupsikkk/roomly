@@ -1,30 +1,27 @@
 import { DiagConsoleLogger, DiagLogLevel, diag } from '@opentelemetry/api';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
-import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
+import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
+import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { HostMetrics } from '@opentelemetry/host-metrics';
 import { resourceFromAttributes } from '@opentelemetry/resources';
+import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs';
+import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 import type { IncomingMessage } from 'node:http';
 
 let started = false;
-let prometheusExporter: PrometheusExporter | undefined;
-
-export function getPrometheusExporter(): PrometheusExporter | undefined {
-  return prometheusExporter;
-}
 
 function incomingPath(req: IncomingMessage): string {
   return (req.url ?? '/').split('?')[0] || '/';
 }
 
-/** Health, metrics scrape, Swagger UI/assets, favicon — not useful as root traces. */
+/** Health, Swagger UI/assets, favicon — not useful as root traces. */
 function ignoreIncomingTrace(req: IncomingMessage): boolean {
   const path = incomingPath(req);
   return (
     path === '/health' ||
-    path === '/metrics' ||
     path === '/favicon.ico' ||
     path === '/' ||
     path === '/json/version' ||
@@ -32,22 +29,38 @@ function ignoreIncomingTrace(req: IncomingMessage): boolean {
   );
 }
 
+function otlpSignalUrl(
+  endpoint: string,
+  signal: 'traces' | 'logs' | 'metrics',
+): string {
+  const suffix = `/v1/${signal}`;
+  return endpoint.endsWith(suffix) ? endpoint : `${endpoint}${suffix}`;
+}
+
 /**
- * OpenTelemetry traces (OTLP → Jaeger) + metrics (Prometheus /metrics).
- * Import apps/<service>/src/tracing.ts first in main.ts (side effect).
+ * OpenTelemetry: traces + logs + metrics → OTLP Collector.
+ * Import apps/<service>/src/otel.ts first in main.ts (side effect).
  *
- * - Traces: require OTEL_EXPORTER_OTLP_ENDPOINT
- * - Metrics: on by default; disable with OTEL_METRICS_DISABLED=true
+ * - Traces/logs/metrics: require OTEL_EXPORTER_OTLP_ENDPOINT (compose: otel-collector:4318)
+ * - Logs: OTEL_LOGS_EXPORTER=otlp (default); disable with none/false
+ * - Metrics: on by default when endpoint set; disable with OTEL_METRICS_DISABLED=true
  * - Entire SDK: OTEL_SDK_DISABLED=true
+ * - Stdout / LOG_PRETTY unchanged (dual-write with OTLP logs)
  */
-export function startTracing(serviceName: string): void {
+export function startOtel(serviceName: string): void {
   if (started) return;
   if (process.env.OTEL_SDK_DISABLED === 'true') return;
 
   const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT?.replace(/\/$/, '');
   const tracesEnabled = Boolean(endpoint);
-  const metricsEnabled = process.env.OTEL_METRICS_DISABLED !== 'true';
-  if (!tracesEnabled && !metricsEnabled) return;
+  const logsExporter = (process.env.OTEL_LOGS_EXPORTER ?? 'otlp').toLowerCase();
+  const logsEnabled =
+    Boolean(endpoint) &&
+    logsExporter !== 'none' &&
+    logsExporter !== 'false';
+  const metricsEnabled =
+    Boolean(endpoint) && process.env.OTEL_METRICS_DISABLED !== 'true';
+  if (!tracesEnabled && !metricsEnabled && !logsEnabled) return;
 
   started = true;
 
@@ -60,10 +73,19 @@ export function startTracing(serviceName: string): void {
 
   const metricReaders = [];
   if (metricsEnabled) {
-    prometheusExporter = new PrometheusExporter({
-      preventServerStart: true,
-    });
-    metricReaders.push(prometheusExporter);
+    const exportIntervalMillis = Number(
+      process.env.OTEL_METRIC_EXPORT_INTERVAL ?? 15_000,
+    );
+    metricReaders.push(
+      new PeriodicExportingMetricReader({
+        exporter: new OTLPMetricExporter({
+          url: otlpSignalUrl(endpoint!, 'metrics'),
+        }),
+        exportIntervalMillis: Number.isFinite(exportIntervalMillis)
+          ? exportIntervalMillis
+          : 15_000,
+      }),
+    );
   }
 
   const sdk = new NodeSDK({
@@ -73,10 +95,19 @@ export function startTracing(serviceName: string): void {
     ...(tracesEnabled
       ? {
           traceExporter: new OTLPTraceExporter({
-            url: endpoint!.endsWith('/v1/traces')
-              ? endpoint!
-              : `${endpoint}/v1/traces`,
+            url: otlpSignalUrl(endpoint!, 'traces'),
           }),
+        }
+      : {}),
+    ...(logsEnabled
+      ? {
+          logRecordProcessors: [
+            new BatchLogRecordProcessor({
+              exporter: new OTLPLogExporter({
+                url: otlpSignalUrl(endpoint!, 'logs'),
+              }),
+            }),
+          ],
         }
       : {}),
     ...(metricReaders.length > 0 ? { metricReaders } : {}),
@@ -85,15 +116,18 @@ export function startTracing(serviceName: string): void {
         '@opentelemetry/instrumentation-fs': { enabled: false },
         '@opentelemetry/instrumentation-dns': { enabled: false },
         '@opentelemetry/instrumentation-net': { enabled: false },
-        // Correlation via pino mixin in createRoomlyLoggerModule; avoid
-        // duplicate fields / log export without a log pipeline.
+        // Log sending: createRoomlyLoggerModule dual-writes via pino multistream
+        // (instrumentation-pino does not hook nestjs-pino under Nest webpack).
         '@opentelemetry/instrumentation-pino': { enabled: false },
         // NestJS 11 / Express 5: router pkg duplicates express and emits
-        // "middleware - patched" junk. Keep HTTP + Nest controller spans.
+        // "middleware - patched" junk.
         '@opentelemetry/instrumentation-router': { enabled: false },
         // Express 5 + swagger-ui use /*splat catch-alls; express instrumentation
         // renames root spans to "GET {/*splat}{/*splat}" and hides real paths.
         '@opentelemetry/instrumentation-express': { enabled: false },
+        // nestjs-core wraps every handler twice: `Controller.method` (request_context)
+        // and bare `method` (handler). Drop both; HTTP route + @Traced cover the tree.
+        '@opentelemetry/instrumentation-nestjs-core': { enabled: false },
         '@opentelemetry/instrumentation-http': {
           ignoreIncomingRequestHook: ignoreIncomingTrace,
           requestHook(span, request) {
@@ -149,13 +183,16 @@ export function startTracing(serviceName: string): void {
   process.once('SIGINT', shutdown);
 
   const tracesUrl = tracesEnabled
-    ? endpoint!.endsWith('/v1/traces')
-      ? endpoint!
-      : `${endpoint}/v1/traces`
+    ? otlpSignalUrl(endpoint!, 'traces')
+    : undefined;
+  const logsUrl = logsEnabled ? otlpSignalUrl(endpoint!, 'logs') : undefined;
+  const metricsUrl = metricsEnabled
+    ? otlpSignalUrl(endpoint!, 'metrics')
     : undefined;
   console.log(
     `OpenTelemetry enabled service=${resolvedName}` +
       (tracesUrl ? ` traces=${tracesUrl}` : ' traces=off') +
-      (metricsEnabled ? ' metrics=/metrics' : ' metrics=off'),
+      (logsUrl ? ` logs=${logsUrl}` : ' logs=off') +
+      (metricsUrl ? ` metrics=${metricsUrl}` : ' metrics=off'),
   );
 }

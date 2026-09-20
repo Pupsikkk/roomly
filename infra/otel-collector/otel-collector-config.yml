@@ -1,0 +1,74 @@
+# OpenTelemetry Collector (educational hop between Nest SDK and backends).
+#
+# Flow (this repo):
+#   Nest OTLP traces   →  Collector  →  Jaeger
+#   Nest OTLP logs     →  Collector  →  Loki   (stdout is console-only)
+#   Nest OTLP metrics  →  Collector  →  Prometheus scrape (:8889)
+#
+# Why a Collector: one OTLP endpoint for apps, batching, enrich/filter,
+# and the ability to swap/add backends without touching Nest code.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+  # Visible in Jaeger / Loki / Prometheus — proves telemetry passed the Collector.
+  # compose_service mirrors service.name for existing LogQL / PromQL dashboards.
+  resource:
+    attributes:
+      - key: collector.name
+        value: roomly-otel-collector
+        action: upsert
+      - key: compose_service
+        from_attribute: service.name
+        action: upsert
+
+exporters:
+  # Jaeger all-in-one accepts OTLP on the Docker network (not published to host).
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+  # Loki 3 native OTLP ingest (exporter appends /v1/logs).
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
+    tls:
+      insecure: true
+  # Prometheus scrapes this; Nest no longer exposes /metrics.
+  # Without suffixes → matches existing roomly-nest dashboard / 5xx alert names.
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    resource_to_telemetry_conversion:
+      enabled: true
+    add_metric_suffixes: false
+  # Local debug: docker compose logs otel-collector
+  debug:
+    verbosity: basic
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch, resource]
+      exporters: [otlp/jaeger, debug]
+    logs:
+      receivers: [otlp]
+      processors: [batch, resource]
+      exporters: [otlphttp/loki, debug]
+    metrics:
+      receivers: [otlp]
+      processors: [batch, resource]
+      exporters: [prometheus, debug]

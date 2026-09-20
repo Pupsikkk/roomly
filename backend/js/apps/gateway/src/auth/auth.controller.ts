@@ -32,7 +32,6 @@ import { SignInDto } from './dto/sign-in.dto';
 import { SignUpDto } from './dto/sign-up.dto';
 import { JwtVerifierService } from './jwt-verifier.service';
 
-@Traced()
 @ApiTags('auth')
 @Controller()
 export class AuthController {

@@ -1,4 +1,4 @@
-import './tracing';
+import './otel';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { RoomlyConfigService } from '@roomly/common';

@@ -12,6 +12,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { Traced } from '@roomly/common';
 import {
   AUTH_COOKIE_NAMES,
   USER_HTTP_PATHS,
@@ -34,6 +35,7 @@ export class UsersController {
   @ApiOperation({ summary: 'Get the authenticated user profile' })
   @ApiOkResponse({ type: UserResponseDto })
   @ApiUnauthorizedResponse()
+  @Traced()
   getMe(@CurrentUser() user: AccessTokenClaims): Promise<UserResponse> {
     return this.users.getUserById(user.sub);
   }
