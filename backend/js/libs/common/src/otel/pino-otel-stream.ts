@@ -17,6 +17,9 @@ function severityFromPinoLevel(level: unknown): SeverityNumber {
  * Body is the full pino JSON line so LogQL `| json` / HTTP tables keep working
  * without Promtail. Stdout remains for `docker compose logs` only.
  *
+ * Nest `context` is copied to attribute `nest.context` so the Collector can
+ * filter bootstrap noise (InstanceLoader / RoutesResolver / …).
+ *
  * Uses the active context as-is (do not wrapSpanContext from log fields —
  * that replaces the recording HTTP span and breaks cross-service export).
  */
@@ -28,9 +31,13 @@ export function createPinoOtelStream(): DestinationStream {
 
       const otelLogger = logs.getLogger('nestjs-pino');
       let severity = SeverityNumber.INFO;
+      const attributes: Record<string, string> = {};
       try {
         const rec = JSON.parse(line) as Record<string, unknown>;
         severity = severityFromPinoLevel(rec.level);
+        if (typeof rec.context === 'string' && rec.context.length > 0) {
+          attributes['nest.context'] = rec.context;
+        }
       } catch {
         // non-JSON line — still forward as body
       }
@@ -38,6 +45,7 @@ export function createPinoOtelStream(): DestinationStream {
       otelLogger.emit({
         body: line,
         severityNumber: severity,
+        ...(Object.keys(attributes).length > 0 ? { attributes } : {}),
       });
     },
   };

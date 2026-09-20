@@ -30,6 +30,15 @@ processors:
       - key: compose_service
         from_attribute: service.name
         action: upsert
+  # Nest bootstrap spam (module/route mapping). Attribute set by pino-otel-stream.
+  filter/drop_nest_bootstrap:
+    error_mode: ignore
+    logs:
+      log_record:
+        - 'attributes["nest.context"] == "InstanceLoader"'
+        - 'attributes["nest.context"] == "RoutesResolver"'
+        - 'attributes["nest.context"] == "RouterExplorer"'
+        - 'attributes["nest.context"] == "NestFactory"'
 
 exporters:
   # Jaeger all-in-one accepts OTLP on the Docker network (not published to host).
@@ -66,7 +75,7 @@ service:
       exporters: [otlp/jaeger, debug]
     logs:
       receivers: [otlp]
-      processors: [batch, resource]
+      processors: [filter/drop_nest_bootstrap, batch, resource]
       exporters: [otlphttp/loki, debug]
     metrics:
       receivers: [otlp]
