@@ -1,0 +1,18 @@
+# Load test against gateway-lb (k6).
+# On-demand:  npm run loadtest
+# With up:    loadtest=1 in services.conf (runs for DURATION then exits)
+
+services:
+  loadtest:
+    image: grafana/k6:0.57.0
+    volumes:
+      - ./loadtest:/scripts:ro
+    environment:
+      BASE_URL: ${LOADTEST_BASE_URL:-http://gateway-lb}
+      VUS: ${LOADTEST_VUS:-10}
+      DURATION: ${LOADTEST_DURATION:-30s}
+      LOADTEST_PASSWORD: ${LOADTEST_PASSWORD:-Test1234!}
+    command: ["run", "/scripts/gateway.js"]
+    depends_on:
+      - gateway-lb
+    restart: "no"

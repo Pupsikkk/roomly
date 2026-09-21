@@ -9,6 +9,7 @@
     "restart:dev": "npm run down && npm run dev",
     "infra": "node scripts/roomly.mjs infra",
     "obs": "node scripts/roomly.mjs obs",
+    "loadtest": "node scripts/roomly.mjs loadtest",
     "down": "node scripts/roomly.mjs down",
     "build:apps": "node scripts/roomly.mjs build",
     "logs": "node scripts/roomly.mjs logs",

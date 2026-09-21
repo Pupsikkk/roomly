@@ -36,11 +36,13 @@ import { UsersController } from './user/users.controller';
         config: RoomlyConfigService,
         redis: RedisClientService,
       ) => ({
+        // THROTTLE_LIMIT=0 disables (useful for local k6 — all VUs share one IP).
+        skipIf: () => config.gateway.throttleLimit <= 0,
         throttlers: [
           {
             name: 'gateway',
             ttl: config.gateway.throttleTtlMs,
-            limit: config.gateway.throttleLimit,
+            limit: Math.max(config.gateway.throttleLimit, 1),
             generateKey: (_ctx, tracker, throttlerName) =>
               `throttle:${throttlerName}:${tracker}`,
           },

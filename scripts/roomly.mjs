@@ -28,6 +28,7 @@ const COMPOSE_DIR = path.join(INFRA_DIR, 'docker');
 const COMPOSE_FILE = path.join(COMPOSE_DIR, 'docker-compose.yml');
 const COMPOSE_OBS_FILE = path.join(COMPOSE_DIR, 'docker-compose.obs.yml');
 const COMPOSE_DEV_FILE = path.join(COMPOSE_DIR, 'docker-compose.dev.yml');
+const COMPOSE_LOADTEST_FILE = path.join(COMPOSE_DIR, 'docker-compose.loadtest.yml');
 const SERVICES_CONF = path.join(COMPOSE_DIR, 'services.conf');
 
 const JS_SERVICES = ['gateway', 'user-service', 'notification-service'];
@@ -47,6 +48,7 @@ const DEFAULT_SCALE = {
   gateway: 1,
   'user-service': 1,
   'notification-service': 1,
+  loadtest: 0,
 };
 
 /** Host-published ports — scaling >1 usually fails on bind. */
@@ -164,6 +166,20 @@ function planFromConf(scale) {
     add('user-migrate', 1);
   }
 
+  // One-shot k6 against gateway-lb (exits when DURATION ends).
+  // loadtest=1 → on; loadtest=N (N>1) → on + default VUs=N (unless LOADTEST_VUS set).
+  const loadtestN = scale.loadtest ?? 0;
+  if (loadtestN > 0) {
+    if ((scale.gateway ?? 0) <= 0) {
+      warnings.push('loadtest ignored — enable gateway first');
+    } else {
+      add('loadtest', 1);
+      if (loadtestN > 1 && process.env.LOADTEST_VUS === undefined) {
+        process.env.LOADTEST_VUS = String(loadtestN);
+      }
+    }
+  }
+
   return { services, counts, warnings };
 }
 
@@ -201,6 +217,8 @@ function composeArgs(extraFiles = []) {
     COMPOSE_FILE,
     '-f',
     COMPOSE_OBS_FILE,
+    '-f',
+    COMPOSE_LOADTEST_FILE,
     '--env-file',
     ENV_FILE,
   ];
@@ -253,7 +271,21 @@ function cmdUp() {
   if (needsGatewayImage(services)) {
     dockerCompose([], 'build', 'gateway');
   }
-  dockerCompose([], 'up', '-d', ...scaleArgsFor(counts, services), ...services);
+  const longRunning = services.filter((s) => s !== 'loadtest');
+  dockerCompose(
+    [],
+    'up',
+    '-d',
+    ...scaleArgsFor(counts, longRunning),
+    ...longRunning,
+  );
+  // Force recreate: exited one-shot (restart:no) is otherwise skipped on re-up.
+  if (services.includes('loadtest')) {
+    dockerCompose([], 'up', '-d', '--force-recreate', 'loadtest');
+    console.log(
+      `  Loadtest:      k6 VUS=${env('LOADTEST_VUS', '10')} DURATION=${env('LOADTEST_DURATION', '30s')} (exits when done)`,
+    );
+  }
   console.log('');
   console.log('Roomly is up (prod mode)');
   if (services.includes('gateway')) {
@@ -275,7 +307,10 @@ function cmdDev() {
     process.exit(1);
   }
 
-  const detached = services.filter((s) => !JS_SERVICES.includes(s));
+  const wantLoadtest = services.includes('loadtest');
+  const detached = services.filter(
+    (s) => !JS_SERVICES.includes(s) && s !== 'loadtest',
+  );
   const foreground = services.filter((s) => JS_SERVICES.includes(s));
 
   if (needsGatewayImage(services)) {
@@ -288,6 +323,19 @@ function cmdDev() {
       '-d',
       ...scaleArgsFor(counts, detached),
       ...detached,
+    );
+  }
+  // Start before Nest watch attaches TTY; k6 setup() waits for /health.
+  if (wantLoadtest) {
+    dockerCompose(
+      [COMPOSE_DEV_FILE],
+      'up',
+      '-d',
+      '--force-recreate',
+      'loadtest',
+    );
+    console.log(
+      `Loadtest: k6 VUS=${env('LOADTEST_VUS', '10')} DURATION=${env('LOADTEST_DURATION', '30s')} (waits for gateway, then runs)`,
     );
   }
   if (foreground.length) {
@@ -312,6 +360,17 @@ function cmdObs() {
   dockerCompose([], 'up', '-d', ...OBS_CORE_SERVICES, 'postgres-exporter', 'redis-exporter');
   console.log('Observability stack is up');
   printObsUrls();
+}
+
+function cmdLoadtest() {
+  ensureEnv();
+  console.log(
+    `k6 → gateway-lb (VUS=${env('LOADTEST_VUS', '10')}, DURATION=${env('LOADTEST_DURATION', '60m')})`,
+  );
+  // --no-deps: do not recreate gateway from base compose (would replace a
+  // running roomly-js:dev stack with a possibly stale roomly-js:local image
+  // and break OTLP logs/metrics → Grafana).
+  dockerCompose([], 'run', '--rm', '--no-deps', 'loadtest');
 }
 
 function cmdDown(extra = []) {
@@ -342,6 +401,7 @@ function cmdHelp() {
   npm run auth:keys   generate local JWT RSA private key (once; skip if exists)
   npm run infra       force postgres, redis, rabbitmq
   npm run obs         force observability stack
+  npm run loadtest    k6 load test against gateway-lb (one-shot)
   npm run down        stop all services
   npm run build:apps  rebuild Nest image (gateway)
   npm run logs        follow logs (optional: npm run logs -- gateway)
@@ -350,13 +410,14 @@ function cmdHelp() {
 
 Compose / secrets:
   infra/docker/docker-compose*.yml
-  infra/docker/services.conf   # 0=off, N=replicas (obs is 0/1 group)
+  infra/docker/services.conf   # 0=off, N=replicas; loadtest=1 runs k6 once
+  infra/loadtest/gateway.js
   infra/secrets/.env
 
 Examples:
   npm run up
-  npm run dev
-  # edit infra/docker/services.conf → notification-service=0, gateway=1
+  npm run loadtest
+  LOADTEST_VUS=25 LOADTEST_DURATION=2m npm run loadtest
   npm run down
 `);
 }
@@ -377,6 +438,9 @@ function main() {
       break;
     case 'obs':
       cmdObs();
+      break;
+    case 'loadtest':
+      cmdLoadtest();
       break;
     case 'down':
     case 'stop':
