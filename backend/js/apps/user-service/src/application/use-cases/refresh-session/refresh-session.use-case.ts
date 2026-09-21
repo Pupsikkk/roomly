@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Traced } from '@roomly/common';
 import type { SessionTokensResponse } from '@roomly/contracts';
-import { InvalidRefreshTokenError } from '../../domain/index';
+import { InvalidRefreshTokenError } from '../../../domain';
 import {
   REFRESH_TOKEN_STORE,
   type RefreshTokenStorePort,
-} from '../ports/refresh-token.store';
-import { IssueSessionTokensService } from '../services/issue-session-tokens.service';
+} from '../../ports/refresh-token.store';
+import { IssueSessionTokensService } from '../../services/issue-session-tokens.service';
 
 export type RefreshSessionInput = {
   refreshToken: string;

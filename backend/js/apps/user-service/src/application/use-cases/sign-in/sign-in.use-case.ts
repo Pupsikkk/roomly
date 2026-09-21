@@ -1,14 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Traced, withSpan } from '@roomly/common';
+import { Traced } from '@roomly/common';
 import type { SessionTokensResponse } from '@roomly/contracts';
-import { InvalidCredentialsError } from '../../domain/index';
-import * as bcrypt from 'bcrypt';
-import { IssueSessionTokensService } from '../services/issue-session-tokens.service';
+import { InvalidCredentialsError } from '../../../domain';
+import { IssueSessionTokensService } from '../../services/issue-session-tokens.service';
 import {
   USER_REPOSITORY,
   type UserRepository,
-} from '../ports/user.repository';
-import { PasswordUtils } from '../utils/password.utils';
+} from '../../ports/user.repository';
+import { PasswordUtils } from '../../utils/password.utils';
 
 export type SignInInput = {
   email: string;

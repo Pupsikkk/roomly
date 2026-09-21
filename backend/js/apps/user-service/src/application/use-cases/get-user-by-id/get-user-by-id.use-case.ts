@@ -1,10 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Traced } from '@roomly/common';
-import { User, UserNotFoundError } from '../../domain/index';
+import { User, UserNotFoundError } from '../../../domain';
 import {
   USER_REPOSITORY,
   type UserRepository,
-} from '../ports/user.repository';
+} from '../../ports/user.repository';
 
 @Traced()
 @Injectable()

@@ -1,18 +1,18 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Traced, withSpan } from '@roomly/common';
 import { userCreatedEvent, type SessionTokensResponse } from '@roomly/contracts';
-import { IssueSessionTokensService } from '../services/issue-session-tokens.service';
+import { IssueSessionTokensService } from '../../services/issue-session-tokens.service';
 import {
   EVENT_PUBLISHER,
   type EventPublisher,
-} from '../ports/event-publisher.port';
+} from '../../ports/event-publisher.port';
 import {
   USER_REPOSITORY,
   type UserRepository,
-} from '../ports/user.repository';
+} from '../../ports/user.repository';
 import { randomUUID } from 'node:crypto';
-import { User, UserAlreadyExistsError } from '../../domain';
-import { PasswordUtils } from '../utils/password.utils';
+import { User, UserAlreadyExistsError } from '../../../domain';
+import { PasswordUtils } from '../../utils/password.utils';
 
 export type SignUpInput = {
   email: string;

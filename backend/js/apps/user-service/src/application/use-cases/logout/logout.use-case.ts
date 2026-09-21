@@ -3,11 +3,11 @@ import { Traced } from '@roomly/common';
 import {
   REFRESH_TOKEN_STORE,
   type RefreshTokenStorePort,
-} from '../ports/refresh-token.store';
+} from '../../ports/refresh-token.store';
 import {
   TOKEN_DENYLIST,
   type TokenDenylistPort,
-} from '../ports/token-denylist.port';
+} from '../../ports/token-denylist.port';
 
 export type LogoutInput = {
   jti?: string;
