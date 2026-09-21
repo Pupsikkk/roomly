@@ -1,9 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { USER_EVENTS_EXCHANGE } from '@roomly/contracts';
+import {
+  USER_EVENTS_EXCHANGE,
+  userCreatedEvent,
+} from '@roomly/contracts';
 import { RabbitmqConnectionService } from '@roomly/infra';
 import type {
-  DomainEvent,
   EventPublisher,
+  UserCreatedNotification,
 } from '../../../application/ports/event-publisher.port';
 
 @Injectable()
@@ -13,7 +16,8 @@ export class RabbitEventPublisher implements EventPublisher {
 
   constructor(private readonly rabbit: RabbitmqConnectionService) {}
 
-  async publish(event: DomainEvent): Promise<void> {
+  async publishUserCreated(user: UserCreatedNotification): Promise<void> {
+    const event = userCreatedEvent({ id: user.id, email: user.email });
     const channel = await this.rabbit.getChannel();
     if (!this.exchangeReady) {
       await channel.assertExchange(USER_EVENTS_EXCHANGE, 'topic', {

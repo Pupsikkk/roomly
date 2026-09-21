@@ -18,25 +18,26 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { RoomlyConfigService, Traced } from '@roomly/common';
+import { AuthGrpcClient } from '@roomly/clients/user/grpc';
+import { RoomlyConfigService } from '@roomly/common';
 import {
   AUTH_COOKIE_NAMES,
   AUTH_HTTP_PATHS,
   type AuthSessionResponse,
 } from '@roomly/contracts';
 import type { Request, Response } from 'express';
-import { AuthHttpClient } from './auth-http.client';
 import { clearAuthCookies, setAuthCookies } from './auth-cookies';
 import { AuthSessionResponseDto } from './dto/auth-session-response.dto';
 import { SignInDto } from './dto/sign-in.dto';
 import { SignUpDto } from './dto/sign-up.dto';
 import { JwtVerifierService } from './jwt-verifier.service';
+import { toSessionTokens } from './to-session-tokens';
 
 @ApiTags('auth')
 @Controller()
 export class AuthController {
   constructor(
-    private readonly auth: AuthHttpClient,
+    private readonly auth: AuthGrpcClient,
     private readonly config: RoomlyConfigService,
     private readonly verifier: JwtVerifierService,
   ) {}
@@ -52,7 +53,7 @@ export class AuthController {
     @Body() body: SignUpDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthSessionResponse> {
-    const tokens = await this.auth.signUp(body);
+    const tokens = toSessionTokens(await this.auth.signUp(body));
     setAuthCookies(res, tokens, this.config.gateway);
     return { expiresIn: tokens.accessExpiresIn };
   }
@@ -68,7 +69,7 @@ export class AuthController {
     @Body() body: SignInDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthSessionResponse> {
-    const tokens = await this.auth.signIn(body);
+    const tokens = toSessionTokens(await this.auth.signIn(body));
     setAuthCookies(res, tokens, this.config.gateway);
     return { expiresIn: tokens.accessExpiresIn };
   }
@@ -90,7 +91,9 @@ export class AuthController {
       throw new UnauthorizedException('Missing refresh token cookie');
     }
 
-    const tokens = await this.auth.refresh({ refreshToken });
+    const tokens = toSessionTokens(
+      await this.auth.refresh({ refreshToken }),
+    );
     setAuthCookies(res, tokens, this.config.gateway);
     return { expiresIn: tokens.accessExpiresIn };
   }
@@ -126,6 +129,7 @@ export class AuthController {
       exp,
       refreshToken:
         typeof refreshToken === 'string' ? refreshToken : undefined,
+      hasExp: typeof exp === 'number',
     });
 
     clearAuthCookies(res, this.config.gateway);

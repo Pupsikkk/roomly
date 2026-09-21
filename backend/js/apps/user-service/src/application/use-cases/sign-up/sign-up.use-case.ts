@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Traced, withSpan } from '@roomly/common';
-import { userCreatedEvent, type SessionTokensResponse } from '@roomly/contracts';
-import { IssueSessionTokensService } from '../../services/issue-session-tokens.service';
+import { Traced } from '@roomly/common';
+import { User, UserAlreadyExistsError } from '../../../domain';
+import type { SessionTokens } from '../../dto/session-tokens';
 import {
   EVENT_PUBLISHER,
   type EventPublisher,
@@ -10,9 +10,9 @@ import {
   USER_REPOSITORY,
   type UserRepository,
 } from '../../ports/user.repository';
-import { randomUUID } from 'node:crypto';
-import { User, UserAlreadyExistsError } from '../../../domain';
+import { IssueSessionTokensService } from '../../services/issue-session-tokens.service';
 import { PasswordUtils } from '../../utils/password.utils';
+import { randomUUID } from 'node:crypto';
 
 export type SignUpInput = {
   email: string;
@@ -30,7 +30,7 @@ export class SignUpUseCase {
     private readonly sessions: IssueSessionTokensService,
   ) {}
 
-  async execute(input: SignUpInput): Promise<SessionTokensResponse> {
+  async execute(input: SignUpInput): Promise<SessionTokens> {
     const email = input.email.trim().toLowerCase();
     const existing = await this.users.findByEmail(email);
     if (existing) {
@@ -49,9 +49,10 @@ export class SignUpUseCase {
 
     const saved = await this.users.save(user);
 
-    await this.events.publish(
-      userCreatedEvent({ id: saved.id, email: saved.email }),
-    );
+    await this.events.publishUserCreated({
+      id: saved.id,
+      email: saved.email,
+    });
 
     return this.sessions.issue(saved.id);
   }

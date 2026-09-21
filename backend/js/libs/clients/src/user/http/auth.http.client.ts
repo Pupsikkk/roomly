@@ -8,7 +8,7 @@ import {
   type SignInRequest,
   type SignUpRequest,
 } from '@roomly/contracts';
-import { UserServiceHttp } from '../http/user-service.http';
+import { UserServiceHttp } from './user-service.http';
 
 @Traced({ work: 'network' })
 @Injectable()

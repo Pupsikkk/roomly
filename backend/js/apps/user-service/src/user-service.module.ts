@@ -4,6 +4,7 @@ import {
   HealthModule,
   RoomlyConfigModule,
 } from '@roomly/common';
+import { GrpcModule } from './adapters/inbound/grpc/grpc.module';
 import { HttpModule } from './adapters/inbound/http/http.module';
 
 @Module({
@@ -14,6 +15,7 @@ import { HttpModule } from './adapters/inbound/http/http.module';
     }),
     HealthModule,
     HttpModule,
+    GrpcModule,
   ],
 })
 export class UserServiceModule {}

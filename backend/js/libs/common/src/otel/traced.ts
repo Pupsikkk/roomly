@@ -1,4 +1,5 @@
 import { SpanKind, trace, type SpanOptions } from '@opentelemetry/api';
+import { firstValueFrom, isObservable, type Observable } from 'rxjs';
 import { recordActiveSpanError } from './record-active-span-error';
 
 const DEFAULT_TRACER = 'roomly';
@@ -112,6 +113,12 @@ export function ExcludeTracer(): MethodDecorator {
  * Method decorators run before class decorators — a method already marked
  * with `@Traced()` is not wrapped again; `@ExcludeTracer()` opts out of class tracing.
  *
+ * Work always starts **inside** the span (never call the original first). Calling
+ * first would orphan auto-instrumented children (gRPC/HTTP) under the HTTP root.
+ *
+ * Observable results are awaited via `firstValueFrom` so the span stays open
+ * for the RPC lifetime (call sites in this repo expect Promises).
+ *
  * @example
  * `@Traced()`
  * `@Traced({ work: 'cpu' })`
@@ -173,7 +180,19 @@ function wrapMethod(
   const spanName = nameOverride ?? `${className}.${String(propertyKey)}`;
 
   const wrapped: FlaggedFn = function (this: unknown, ...args: unknown[]) {
-    return withSpan(spanName, () => original.apply(this, args), options);
+    // Invoke inside the span — calling original *before* withSpan orphans
+    // instrumentation-grpc / http CLIENT spans under the HTTP root.
+    return withSpan(
+      spanName,
+      () => {
+        const result = original.apply(this, args);
+        if (isObservable(result) || isObservableLike(result)) {
+          return firstValueFrom(result as Observable<unknown>);
+        }
+        return result;
+      },
+      options,
+    );
   };
   wrapped[TRACED_FLAG] = true;
   // Nest/Swagger attach @Post/@Api* metadata onto the method function itself.
@@ -184,6 +203,15 @@ function wrapMethod(
   });
 
   descriptor.value = wrapped;
+}
+
+/** Survive duplicate-rxjs `instanceof` failures across webpack bundles. */
+function isObservableLike(value: unknown): boolean {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { subscribe?: unknown }).subscribe === 'function'
+  );
 }
 
 function copyReflectMetadata(from: object, to: object): void {

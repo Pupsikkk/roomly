@@ -27,7 +27,9 @@
       "@roomly/infra": ["./libs/infra/src"],
       "@roomly/infra/*": ["./libs/infra/src/*"],
       "@roomly/contracts": ["./libs/contracts/src"],
-      "@roomly/contracts/*": ["./libs/contracts/src/*"]
+      "@roomly/contracts/*": ["./libs/contracts/src/*"],
+      "@roomly/clients": ["./libs/clients/src"],
+      "@roomly/clients/*": ["./libs/clients/src/*"]
     }
   }
 }

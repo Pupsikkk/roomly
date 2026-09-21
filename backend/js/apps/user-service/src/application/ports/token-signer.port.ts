@@ -1,4 +1,4 @@
-import type { JwksResponse } from '@roomly/contracts';
+import type { Jwks } from '../dto/jwks';
 
 export const TOKEN_SIGNER = Symbol('TOKEN_SIGNER');
 
@@ -9,7 +9,7 @@ export type SignAccessTokenInput = {
 export type SignedAccessToken = {
   accessToken: string;
   jti: string;
-  /** Seconds until expiry (for AuthTokenResponse.expiresIn) */
+  /** Seconds until expiry */
   expiresIn: number;
   /** Unix expiry (seconds) */
   exp: number;
@@ -17,5 +17,5 @@ export type SignedAccessToken = {
 
 export interface TokenSignerPort {
   signAccessToken(input: SignAccessTokenInput): Promise<SignedAccessToken>;
-  getJwks(): Promise<JwksResponse>;
+  getJwks(): Promise<Jwks>;
 }

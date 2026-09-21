@@ -114,8 +114,12 @@ services:
       # Private key stays on user-service only (compose secret mount)
       JWT_PRIVATE_KEY_PATH: ${JWT_PRIVATE_KEY_PATH_DOCKER:-/run/secrets/jwt/jwt-private.pem}
       OTEL_SERVICE_NAME: user-service
+      USER_SERVICE_GRPC_PORT: ${USER_SERVICE_GRPC_PORT:-50051}
     volumes:
       - ./secrets/dev:/run/secrets/jwt:ro
+    expose:
+      - "${USER_SERVICE_PORT:-3001}"
+      - "${USER_SERVICE_GRPC_PORT:-50051}"
     depends_on:
       gateway:
         condition: service_started

@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Traced } from '@roomly/common';
-import type { SessionTokensResponse } from '@roomly/contracts';
 import { InvalidRefreshTokenError } from '../../../domain';
+import type { SessionTokens } from '../../dto/session-tokens';
 import {
   REFRESH_TOKEN_STORE,
   type RefreshTokenStorePort,
@@ -21,7 +21,7 @@ export class RefreshSessionUseCase {
     private readonly sessions: IssueSessionTokensService,
   ) {}
 
-  async execute(input: RefreshSessionInput): Promise<SessionTokensResponse> {
+  async execute(input: RefreshSessionInput): Promise<SessionTokens> {
     const record = await this.refreshTokens.take(input.refreshToken);
     if (!record) {
       throw new InvalidRefreshTokenError();

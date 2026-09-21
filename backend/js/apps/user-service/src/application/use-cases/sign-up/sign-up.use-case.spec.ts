@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it } from '@jest/globals';
-import { USER_EVENT_TYPES } from '@roomly/contracts';
 import { UserAlreadyExistsError } from '../../../domain';
 import { FakeEventPublisher } from '../../testing/fake-event-publisher';
 import { InMemoryUserRepository } from '../../testing/in-memory-user.repository';
@@ -33,11 +32,9 @@ describe('SignUpUseCase', () => {
       await PasswordUtils.compare('Secret123!', saved!.passwordHash),
     ).toBe(true);
 
-    expect(events.published).toHaveLength(1);
-    expect(events.published[0]).toMatchObject({
-      type: USER_EVENT_TYPES.CREATED,
-      payload: { id: saved!.id, email: 'ada@roomly.test' },
-    });
+    expect(events.published).toEqual([
+      { id: saved!.id, email: 'ada@roomly.test' },
+    ]);
 
     expect(sessions.issued).toEqual([
       { userId: saved!.id, familyId: undefined },

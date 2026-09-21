@@ -138,6 +138,8 @@ export function startOtel(serviceName: string): void {
             span.updateName(`${method} ${path}`);
           },
         },
+        // gRPC client↔server: W3C tracecontext in metadata (traceparent) is
+        // injected/extracted automatically — leave instrumentation-grpc on.
         // Drop pg.connect / pg-pool.connect noise; keep query spans.
         '@opentelemetry/instrumentation-pg': {
           ignoreConnectSpans: true,

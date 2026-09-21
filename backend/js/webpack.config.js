@@ -11,7 +11,11 @@ const OTEL_PINO_EXTERNALS = [
   'pino-pretty',
   'nestjs-pino',
   'thread-stream',
+  '@grpc/grpc-js',
+  '@grpc/proto-loader',
 ];
+
+const otelApi = path.resolve(__dirname, 'node_modules/@opentelemetry/api');
 
 /** @param {import('webpack').Configuration} options */
 module.exports = function (options) {
@@ -26,11 +30,14 @@ module.exports = function (options) {
     externals,
     resolve: {
       ...options.resolve,
+      // One API instance for app code + instrumentation (shared ALS context).
       alias: {
         ...(options.resolve?.alias ?? {}),
+        '@opentelemetry/api': otelApi,
         '@roomly/common': path.resolve(__dirname, 'libs/common/src'),
         '@roomly/infra': path.resolve(__dirname, 'libs/infra/src'),
         '@roomly/contracts': path.resolve(__dirname, 'libs/contracts/src'),
+        '@roomly/clients': path.resolve(__dirname, 'libs/clients/src'),
       },
     },
   };

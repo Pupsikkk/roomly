@@ -30,6 +30,10 @@ export interface ServicesConfig {
   notificationPort: number;
   gatewayUrl: string;
   userServiceUrl: string;
+  /** Host:port for Nest gRPC clients (gateway → user-service). */
+  userServiceGrpcUrl: string;
+  /** Bind port for user-service gRPC server (0.0.0.0:port). */
+  userServiceGrpcPort: number;
   notificationServiceUrl: string;
   hotelServiceUrl: string;
   bookingServiceUrl: string;
@@ -111,25 +115,36 @@ export const rabbitmqConfig = registerAs(
 
 export const servicesConfig = registerAs(
   'services',
-  (): ServicesConfig => ({
-    gatewayPort: envInt('GATEWAY_PORT', DEFAULT_PORTS.gateway),
-    userPort: envInt('USER_SERVICE_PORT', DEFAULT_PORTS.user),
-    notificationPort: envInt(
-      'NOTIFICATION_SERVICE_PORT',
-      DEFAULT_PORTS.notification,
-    ),
-    gatewayUrl: env('GATEWAY_URL', `http://localhost:${DEFAULT_PORTS.gateway}`),
-    userServiceUrl: env(
-      'USER_SERVICE_URL',
-      `http://localhost:${DEFAULT_PORTS.user}`,
-    ),
-    notificationServiceUrl: env(
-      'NOTIFICATION_SERVICE_URL',
-      `http://localhost:${DEFAULT_PORTS.notification}`,
-    ),
-    hotelServiceUrl: env('HOTEL_SERVICE_URL', 'http://localhost:8000'),
-    bookingServiceUrl: env('BOOKING_SERVICE_URL', 'http://localhost:8001'),
-  }),
+  (): ServicesConfig => {
+    const userServiceGrpcPort = envInt('USER_SERVICE_GRPC_PORT', 50051);
+    return {
+      gatewayPort: envInt('GATEWAY_PORT', DEFAULT_PORTS.gateway),
+      userPort: envInt('USER_SERVICE_PORT', DEFAULT_PORTS.user),
+      notificationPort: envInt(
+        'NOTIFICATION_SERVICE_PORT',
+        DEFAULT_PORTS.notification,
+      ),
+      gatewayUrl: env(
+        'GATEWAY_URL',
+        `http://localhost:${DEFAULT_PORTS.gateway}`,
+      ),
+      userServiceUrl: env(
+        'USER_SERVICE_URL',
+        `http://localhost:${DEFAULT_PORTS.user}`,
+      ),
+      userServiceGrpcPort,
+      userServiceGrpcUrl: env(
+        'USER_SERVICE_GRPC_URL',
+        `localhost:${userServiceGrpcPort}`,
+      ),
+      notificationServiceUrl: env(
+        'NOTIFICATION_SERVICE_URL',
+        `http://localhost:${DEFAULT_PORTS.notification}`,
+      ),
+      hotelServiceUrl: env('HOTEL_SERVICE_URL', 'http://localhost:8000'),
+      bookingServiceUrl: env('BOOKING_SERVICE_URL', 'http://localhost:8001'),
+    };
+  },
 );
 
 export const authConfig = registerAs(

@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Traced } from '@roomly/common';
-import type { SessionTokensResponse } from '@roomly/contracts';
 import { InvalidCredentialsError } from '../../../domain';
+import type { SessionTokens } from '../../dto/session-tokens';
 import { IssueSessionTokensService } from '../../services/issue-session-tokens.service';
 import {
   USER_REPOSITORY,
@@ -23,7 +23,7 @@ export class SignInUseCase {
     private readonly sessions: IssueSessionTokensService,
   ) {}
 
-  async execute(input: SignInInput): Promise<SessionTokensResponse> {
+  async execute(input: SignInInput): Promise<SessionTokens> {
     const email = input.email.trim().toLowerCase();
     const user = await this.users.findByEmail(email);
     if (!user) {

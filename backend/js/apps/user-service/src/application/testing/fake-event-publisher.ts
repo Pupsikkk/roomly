@@ -1,10 +1,13 @@
-import type { DomainEvent, EventPublisher } from '../ports/event-publisher.port';
+import type {
+  EventPublisher,
+  UserCreatedNotification,
+} from '../ports/event-publisher.port';
 
-/** Collects published domain events for assertions. */
+/** Collects publishUserCreated calls for assertions. */
 export class FakeEventPublisher implements EventPublisher {
-  readonly published: DomainEvent[] = [];
+  readonly published: UserCreatedNotification[] = [];
 
-  async publish(event: DomainEvent): Promise<void> {
-    this.published.push(event);
+  async publishUserCreated(user: UserCreatedNotification): Promise<void> {
+    this.published.push(user);
   }
 }

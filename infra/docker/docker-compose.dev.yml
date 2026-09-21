@@ -52,6 +52,10 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       JWT_PRIVATE_KEY_PATH: ${JWT_PRIVATE_KEY_PATH_DOCKER:-/run/secrets/jwt/jwt-private.pem}
       OTEL_SERVICE_NAME: user-service
+      USER_SERVICE_GRPC_PORT: ${USER_SERVICE_GRPC_PORT:-50051}
+    expose:
+      - "${USER_SERVICE_PORT:-3001}"
+      - "${USER_SERVICE_GRPC_PORT:-50051}"
     volumes:
       - ../backend/js:/app
       - user_node_modules:/app/node_modules

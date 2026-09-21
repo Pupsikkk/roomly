@@ -1,3 +1,4 @@
+import { status as grpcStatus } from '@grpc/grpc-js';
 import {
   ArgumentsHost,
   Catch,
@@ -11,6 +12,7 @@ import {
 import { recordActiveSpanError } from '@roomly/common';
 import type { Response } from 'express';
 import { Logger } from 'nestjs-pino';
+import { Observable, throwError } from 'rxjs';
 import {
   InvalidCredentialsError,
   InvalidRefreshTokenError,
@@ -35,7 +37,15 @@ export class DomainExceptionFilter implements ExceptionFilter {
       | InvalidCredentialsError
       | InvalidRefreshTokenError,
     host: ArgumentsHost,
-  ) {
+  ): void | Observable<never> {
+    // Hybrid app: same APP_FILTER stack serves gRPC — serialize to { code, message }.
+    if (host.getType() !== 'http') {
+      return throwError(() => ({
+        code: toGrpcStatusCode(exception),
+        message: exception.message,
+      }));
+    }
+
     const response = host.switchToHttp().getResponse<Response>();
     const httpException = this.toHttpException(exception);
     const status = httpException.getStatus();
@@ -78,5 +88,19 @@ export class DomainExceptionFilter implements ExceptionFilter {
       return new NotFoundException(exception.message);
     }
     return new NotFoundException(exception.message);
+  }
+}
+
+function toGrpcStatusCode(exception: Error): number {
+  switch (exception.name) {
+    case 'UserAlreadyExistsError':
+      return grpcStatus.ALREADY_EXISTS;
+    case 'InvalidCredentialsError':
+    case 'InvalidRefreshTokenError':
+      return grpcStatus.UNAUTHENTICATED;
+    case 'UserNotFoundError':
+      return grpcStatus.NOT_FOUND;
+    default:
+      return grpcStatus.INTERNAL;
   }
 }

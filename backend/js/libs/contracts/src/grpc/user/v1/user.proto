@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package user.v1;
+
+option java_multiple_files = true;
+
+// Internal Nest contract: gateway ↔ user-service (HTTP JSON API remains for Python).
+
+service AuthService {
+  rpc SignUp (SignUpRequest) returns (SessionTokensResponse);
+  rpc SignIn (SignInRequest) returns (SessionTokensResponse);
+  rpc Refresh (RefreshRequest) returns (SessionTokensResponse);
+  rpc Logout (LogoutRequest) returns (LogoutResponse);
+}
+
+service UserService {
+  rpc GetUserById (GetUserByIdRequest) returns (UserResponse);
+}
+
+message SignUpRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message SignInRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message RefreshRequest {
+  string refresh_token = 1;
+}
+
+message LogoutRequest {
+  string jti = 1;
+  int64 exp = 2;
+  string refresh_token = 3;
+  bool has_exp = 4;
+}
+
+message LogoutResponse {}
+
+message SessionTokensResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  int32 access_expires_in = 3;
+  int32 refresh_expires_in = 4;
+  int64 access_exp = 5;
+}
+
+message GetUserByIdRequest {
+  string id = 1;
+}
+
+message UserResponse {
+  string id = 1;
+  string email = 2;
+  string created_at = 3;
+  string updated_at = 4;
+}

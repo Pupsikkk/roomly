@@ -12,7 +12,8 @@ export class JwksController {
   ) {}
 
   @Get(AUTH_HTTP_PATHS.jwks)
-  getJwks(): Promise<JwksResponse> {
-    return this.tokenSigner.getJwks();
+  async getJwks(): Promise<JwksResponse> {
+    const jwks = await this.tokenSigner.getJwks();
+    return { keys: jwks.keys };
   }
 }

@@ -5,7 +5,7 @@ import {
   RoomlyConfigService,
   Traced,
 } from '@roomly/common';
-import type { SessionTokensResponse } from '@roomly/contracts';
+import type { SessionTokens } from '../dto/session-tokens';
 import {
   createRefreshToken,
   REFRESH_TOKEN_STORE,
@@ -34,7 +34,7 @@ export class IssueSessionTokensService {
   async issue(
     userId: string,
     familyId: string = randomUUID(),
-  ): Promise<SessionTokensResponse> {
+  ): Promise<SessionTokens> {
     const access = await this.tokens.signAccessToken({ userId });
     const refreshToken = createRefreshToken();
     const refreshExpiresIn = durationToSeconds(

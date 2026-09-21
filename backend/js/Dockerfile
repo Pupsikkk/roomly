@@ -23,6 +23,8 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/dist-migrate ./dist-migrate
+# Runtime loads .proto from disk (Nest Transport.GRPC); keep all packages under grpc/.
+COPY --from=build /app/libs/contracts/src/grpc ./libs/contracts/src/grpc
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 

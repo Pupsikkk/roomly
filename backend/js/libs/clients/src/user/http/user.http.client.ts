@@ -1,10 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Traced } from '@roomly/common';
-import {
-  USER_HTTP_PATHS,
-  type UserResponse,
-} from '@roomly/contracts';
-import { UserServiceHttp } from '../http/user-service.http';
+import { USER_HTTP_PATHS, type UserResponse } from '@roomly/contracts';
+import { UserServiceHttp } from './user-service.http';
 
 @Traced({ work: 'network' })
 @Injectable()

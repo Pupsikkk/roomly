@@ -6,6 +6,12 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
+    "proto:gen": "proto-loader-gen-types --longs=String --enums=String --defaults --oneofs --grpcLib=@grpc/grpc-js --outDir=libs/contracts/src/grpc/user/v1/gen libs/contracts/src/grpc/user/v1/user.proto",
+    "proto:watch": "onchange -i \"libs/contracts/src/grpc/**/*.proto\" -- npm run proto:gen",
+    "prebuild": "npm run proto:gen",
+    "prebuild:gateway": "npm run proto:gen",
+    "prebuild:user": "npm run proto:gen",
+    "prebuild:notification": "npm run proto:gen",
     "build": "nest build gateway && nest build user-service && nest build notification-service",
     "build:gateway": "nest build gateway",
     "build:user": "nest build user-service",
@@ -15,11 +21,11 @@
     "start:gateway": "nest start gateway",
     "start:user": "nest start user-service",
     "start:notification": "nest start notification-service",
-    "start:dev": "nest start gateway --watch",
-    "start:dev:gateway": "nest start gateway --watch",
-    "start:dev:user": "nest start user-service --watch",
+    "start:dev": "concurrently -k -n proto,nest -c blue,green \"npm run proto:watch\" \"nest start gateway --watch\"",
+    "start:dev:gateway": "concurrently -k -n proto,nest -c blue,green \"npm run proto:watch\" \"nest start gateway --watch\"",
+    "start:dev:user": "concurrently -k -n proto,nest -c blue,green \"npm run proto:watch\" \"nest start user-service --watch\"",
     "start:dev:notification": "nest start notification-service --watch",
-    "start:debug": "nest start gateway --debug --watch",
+    "start:debug": "npm run proto:gen && nest start gateway --debug --watch",
     "start:prod:gateway": "node dist/apps/gateway/main",
     "start:prod:user": "node dist/apps/user-service/main",
     "start:prod:notification": "node dist/apps/notification-service/main",
@@ -35,10 +41,13 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand"
   },
   "dependencies": {
+    "@grpc/grpc-js": "^1.14.5",
+    "@grpc/proto-loader": "^0.8.1",
     "@nest-lab/throttler-storage-redis": "^1.2.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^12.0.0",
     "@nestjs/core": "^11.0.1",
+    "@nestjs/microservices": "^11.2.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.4.7",
     "@nestjs/throttler": "^6.5.0",
@@ -89,11 +98,13 @@
     "@types/pino-http": "^5.8.4",
     "@types/supertest": "^7.0.0",
     "@types/swagger-ui-express": "^4.1.8",
+    "concurrently": "^10.0.5",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
     "globals": "^17.0.0",
     "jest": "^30.0.0",
+    "onchange": "^7.1.0",
     "prettier": "^3.4.2",
     "source-map-support": "^0.5.21",
     "supertest": "^7.0.0",
@@ -130,7 +141,8 @@
     "moduleNameMapper": {
       "^@roomly/common(.*)$": "<rootDir>/libs/common/src$1",
       "^@roomly/infra(.*)$": "<rootDir>/libs/infra/src$1",
-      "^@roomly/contracts(.*)$": "<rootDir>/libs/contracts/src$1"
+      "^@roomly/contracts(.*)$": "<rootDir>/libs/contracts/src$1",
+      "^@roomly/clients(.*)$": "<rootDir>/libs/clients/src$1"
     }
   },
   "optionalDependencies": {

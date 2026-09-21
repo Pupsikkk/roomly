@@ -1,3 +1,5 @@
+export * from './dto/jwks';
+export * from './dto/session-tokens';
 export * from './ports/event-publisher.port';
 export * from './ports/refresh-token.store';
 export * from './ports/token-denylist.port';

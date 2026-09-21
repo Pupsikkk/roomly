@@ -1,10 +1,11 @@
-import type { UserDomainEvent } from '@roomly/contracts';
-
 export const EVENT_PUBLISHER = Symbol('EVENT_PUBLISHER');
 
-/** Application-level events (routing key = event.type in Rabbit adapter) */
-export type DomainEvent = UserDomainEvent;
+export type UserCreatedNotification = {
+  id: string;
+  email: string;
+};
 
+/** Outbound domain notifications (wire format lives in the messaging adapter). */
 export interface EventPublisher {
-  publish(event: DomainEvent): Promise<void>;
+  publishUserCreated(user: UserCreatedNotification): Promise<void>;
 }

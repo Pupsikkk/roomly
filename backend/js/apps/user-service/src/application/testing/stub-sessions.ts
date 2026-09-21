@@ -1,4 +1,4 @@
-import type { SessionTokensResponse } from '@roomly/contracts';
+import type { SessionTokens } from '../dto/session-tokens';
 import type { IssueSessionTokensService } from '../services/issue-session-tokens.service';
 
 export type StubSessions = IssueSessionTokensService & {
@@ -13,7 +13,7 @@ export function stubSessions(): StubSessions {
     async issue(
       userId: string,
       familyId?: string,
-    ): Promise<SessionTokensResponse> {
+    ): Promise<SessionTokens> {
       issued.push({ userId, familyId });
       return {
         accessToken: `access.${userId}`,

@@ -1,8 +1,6 @@
 import {
   Controller,
   Get,
-  Param,
-  ParseUUIDPipe,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -12,7 +10,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { Traced } from '@roomly/common';
+import { UserGrpcClient } from '@roomly/clients/user/grpc';
 import {
   AUTH_COOKIE_NAMES,
   USER_HTTP_PATHS,
@@ -22,12 +20,11 @@ import {
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UserResponseDto } from './dto/user-response.dto';
-import { UserHttpClient } from './user-http.client';
 
 @ApiTags('users')
 @Controller(USER_HTTP_PATHS.root)
 export class UsersController {
-  constructor(private readonly users: UserHttpClient) {}
+  constructor(private readonly users: UserGrpcClient) {}
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
@@ -35,8 +32,13 @@ export class UsersController {
   @ApiOperation({ summary: 'Get the authenticated user profile' })
   @ApiOkResponse({ type: UserResponseDto })
   @ApiUnauthorizedResponse()
-  @Traced()
-  getMe(@CurrentUser() user: AccessTokenClaims): Promise<UserResponse> {
-    return this.users.getUserById(user.sub);
+  async getMe(@CurrentUser() user: AccessTokenClaims): Promise<UserResponse> {
+    const profile = await this.users.getUserById({ id: user.sub });
+    return {
+      id: profile.id ?? '',
+      email: profile.email ?? '',
+      createdAt: profile.createdAt ?? '',
+      updatedAt: profile.updatedAt ?? '',
+    };
   }
 }

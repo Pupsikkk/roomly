@@ -6,13 +6,13 @@ import {
   ExcludeTracer,
   Traced,
 } from '@roomly/common';
-import type { Jwk, JwksResponse } from '@roomly/contracts';
-import { decodeJwt, exportJWK, SignJWT } from 'jose';
+import type { Jwk, Jwks } from '../../../application/dto/jwks';
 import type {
   SignAccessTokenInput,
   SignedAccessToken,
   TokenSignerPort,
 } from '../../../application/ports/token-signer.port';
+import { decodeJwt, exportJWK, SignJWT } from 'jose';
 
 @Traced({ work: 'cpu' })
 @Injectable()
@@ -74,7 +74,7 @@ export class RsaJwtTokenSigner implements TokenSignerPort, OnModuleInit {
   }
 
   @ExcludeTracer()
-  async getJwks(): Promise<JwksResponse> {
+  async getJwks(): Promise<Jwks> {
     return { keys: [this.publicJwk] };
   }
 }
