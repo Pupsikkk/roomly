@@ -28,9 +28,11 @@ roomly/
 │       ├── hotel-service/         # каталог + availability/reserve
 │       └── booking-service/
 ├── infra/
-│   ├── docker-compose.yml
-│   ├── docker-compose.dev.yml
-│   ├── .env.example
+│   ├── docker/
+│   │   ├── docker-compose.yml
+│   │   ├── docker-compose.obs.yml
+│   │   └── docker-compose.dev.yml
+│   ├── secrets/.env.example
 │   ├── postgres/init/ + postgres/data/
 │   ├── redis/data/
 │   └── rabbitmq/data/
@@ -78,19 +80,20 @@ Client → Gateway → Booking
 | `frontend/` | Roman |
 | `infra/`, scripts | спільно |
 
-Compose і env: `infra/docker-compose*.yml`, `infra/.env`.
+Compose / secrets: `infra/docker/docker-compose*.yml`, `infra/secrets/.env`.
 
 ## Локальний запуск
 
 Потрібні: **Node.js**, **Docker**.
 
 ```bash
-npm run up            # infra + gateway + user + notification
+npm run up            # core + obs + gateway + user + notification
 npm run dev           # те саме, але з nest --watch
 npm run infra         # лише postgres, redis, rabbitmq
+npm run obs           # Tempo / Loki / Collector / Prometheus / Grafana
 npm run down
 ```
 
 Деталі: `npm run roomly -- help` (або `node scripts/roomly.mjs help`).
 
-Compose / env: `infra/`.
+Compose / secrets: `infra/`.

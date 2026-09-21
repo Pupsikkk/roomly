@@ -35,13 +35,18 @@ npm run build
 **Prod** (збірка `dist` у image — без watch):
 
 ```bash
-docker compose -f infra/docker-compose.yml up --build gateway user-service notification-service
+docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.obs.yml \
+  --env-file infra/secrets/.env --project-directory infra \
+  up --build gateway user-service notification-service
 ```
 
 **Dev / watch** (код з хоста монтується, `nest --watch`):
 
 ```bash
-docker compose -f infra/docker-compose.yml -f infra/docker-compose.dev.yml up --build gateway user-service notification-service
+docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.obs.yml \
+  -f infra/docker/docker-compose.dev.yml \
+  --env-file infra/secrets/.env --project-directory infra \
+  up --build gateway user-service notification-service
 ```
 
 Або з кореня: `npm run up` / `npm run dev`.
@@ -69,7 +74,7 @@ Logging: **nestjs-pino** — JSON у stdout (консоль) + **OTLP logs** →
 
 ## Env
 
-Конфіг у `infra/.env` (див. `infra/.env.example`):
+Конфіг у `infra/secrets/.env` (див. `infra/secrets/.env.example`):
 
 - порти: `GATEWAY_PORT`, `USER_SERVICE_PORT`, `NOTIFICATION_SERVICE_PORT`
 - БД: `USER_DB_NAME`, `POSTGRES_HOST`, `POSTGRES_USER`, …
@@ -81,6 +86,6 @@ Logging: **nestjs-pino** — JSON у stdout (консоль) + **OTLP logs** →
   Local key: `npm run auth:keys` → `infra/secrets/dev/jwt-private.pem` (gitignored;
   also auto-created on `npm run up` / `dev`).
 
-Init SQL (`infra/postgres/init/`) хардкодить імена БД — вони мають збігатися з `infra/.env`.
+Init SQL (`infra/postgres/init/`) хардкодить імена БД — вони мають збігатися з `infra/secrets/.env`.
 
 Hotel / Booking — у `backend/python/`. Sync між сервісами — HTTP, події — RabbitMQ.

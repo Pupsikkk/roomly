@@ -1,5 +1,6 @@
 .env
 infra/.env
+infra/secrets/.env
 
 # Local Docker volume data (never commit)
 infra/postgres/data/**
@@ -22,6 +23,9 @@ infra/secrets/**/*.pem
 
 .DS_Store
 node_modules/
+# Root package.json is scripts-only (no deps) — ignore accidental lockfile.
+# backend/js/package-lock.json stays tracked.
+/package-lock.json
 dist/
 build/
 coverage/

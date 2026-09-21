@@ -12,13 +12,16 @@ export function envInt(name: string, fallback: number): number {
   return Number.isFinite(value) ? value : fallback;
 }
 
-/** Paths to try when loading infra/.env (Docker already injects env). */
+/** Paths to try when loading infra/secrets/.env (Docker already injects env). */
 export function resolveEnvFilePaths(): string[] {
   const cwd = process.cwd();
   const candidates = [
-    resolve(cwd, '../../infra/.env'), // nest from backend/js
-    resolve(cwd, '../infra/.env'), // from backend/
-    resolve(cwd, 'infra/.env'), // from repo root
+    resolve(cwd, '../../infra/secrets/.env'), // nest from backend/js
+    resolve(cwd, '../infra/secrets/.env'), // from backend/
+    resolve(cwd, 'infra/secrets/.env'), // from repo root
+    resolve(cwd, '../../infra/.env'), // legacy
+    resolve(cwd, '../infra/.env'),
+    resolve(cwd, 'infra/.env'),
     resolve(cwd, '.env'),
   ];
   return candidates.filter((path) => existsSync(path));

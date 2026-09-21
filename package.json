@@ -1,13 +1,14 @@
 {
   "name": "roomly",
   "private": true,
-  "description": "Roomly monorepo — hotel network platform",
+  "description": "Roomly monorepo — hotel network platform (root: npm scripts only, do not npm install here)",
   "scripts": {
     "up": "node scripts/roomly.mjs up",
     "dev": "node scripts/roomly.mjs dev",
     "restart": "npm run down && npm run up",
     "restart:dev": "npm run down && npm run dev",
     "infra": "node scripts/roomly.mjs infra",
+    "obs": "node scripts/roomly.mjs obs",
     "down": "node scripts/roomly.mjs down",
     "build:apps": "node scripts/roomly.mjs build",
     "logs": "node scripts/roomly.mjs logs",

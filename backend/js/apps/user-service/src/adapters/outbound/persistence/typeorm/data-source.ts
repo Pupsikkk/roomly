@@ -5,10 +5,13 @@ import { config as loadEnv } from 'dotenv';
 import { DataSource } from 'typeorm';
 import { UserOrmEntity } from './user/user.orm-entity';
 
-/** Load infra/.env for TypeORM CLI (Nest ConfigModule is not used here). */
+/** Load infra/secrets/.env for TypeORM CLI (Nest ConfigModule is not used here). */
 function loadCliEnv(): void {
   const cwd = process.cwd();
   const candidates = [
+    resolve(cwd, '../../infra/secrets/.env'),
+    resolve(cwd, '../infra/secrets/.env'),
+    resolve(cwd, 'infra/secrets/.env'),
     resolve(cwd, '../../infra/.env'),
     resolve(cwd, '../infra/.env'),
     resolve(cwd, 'infra/.env'),

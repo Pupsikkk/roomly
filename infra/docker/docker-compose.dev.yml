@@ -9,16 +9,16 @@ services:
       context: ../backend/js
       dockerfile: Dockerfile.dev
     image: roomly-js:dev
-    env_file: .env
+    env_file: ./secrets/.env
     environment:
       APP: gateway
-      PORT: ${GATEWAY_PORT:-3000}
+      PORT: 3000
       NODE_ENV: ${NODE_ENV:-development}
       JWT_PRIVATE_KEY: ""
       JWT_PRIVATE_KEY_PATH: ""
       OTEL_SERVICE_NAME: gateway
-    ports:
-      - "${GATEWAY_PORT:-3000}:${GATEWAY_PORT:-3000}"
+    expose:
+      - "3000"
     volumes:
       - ../backend/js:/app
       - gateway_node_modules:/app/node_modules
@@ -28,7 +28,7 @@ services:
   user-migrate:
     image: roomly-js:dev
     pull_policy: never
-    env_file: .env
+    env_file: ./secrets/.env
     environment:
       NODE_ENV: ${NODE_ENV:-development}
     volumes:
@@ -45,7 +45,7 @@ services:
   user-service:
     image: roomly-js:dev
     pull_policy: never
-    env_file: .env
+    env_file: ./secrets/.env
     environment:
       APP: user-service
       PORT: ${USER_SERVICE_PORT:-3001}
@@ -66,7 +66,7 @@ services:
   notification-service:
     image: roomly-js:dev
     pull_policy: never
-    env_file: .env
+    env_file: ./secrets/.env
     environment:
       APP: notification-service
       PORT: ${NOTIFICATION_SERVICE_PORT:-3002}

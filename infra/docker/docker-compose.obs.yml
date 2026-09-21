@@ -1,0 +1,94 @@
+# Observability stack (optional overlay).
+# Merged with docker-compose.yml under the same project name `roomly`.
+# Paths resolve via --project-directory infra (see scripts/roomly.mjs).
+#
+#   npm run obs
+
+services:
+  # Metrics for community PostgreSQL Grafana dashboards (not OTel).
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.16.0
+    environment:
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-roomly}:${POSTGRES_PASSWORD:-roomly}@postgres:5432/postgres?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Metrics for community Redis Grafana dashboards (not OTel).
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.67.0
+    environment:
+      REDIS_ADDR: redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # Tempo — traces (OTLP from collector; UI via Grafana Explore).
+  tempo:
+    image: grafana/tempo:2.7.2
+    command: ["-config.file=/etc/tempo.yaml", "-target=all"]
+    volumes:
+      - ./tempo/tempo-config.yml:/etc/tempo.yaml:ro
+      - ./tempo/data:/var/tempo
+    ports:
+      - "${TEMPO_HTTP_PORT:-3200}:3200"
+
+  # Educational OTLP hop: Nest → Collector → Tempo / Loki / Prometheus.
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.129.1
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector/otel-collector-config.yml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "${OTEL_COLLECTOR_OTLP_HTTP_PORT:-4318}:4318"
+      - "${OTEL_COLLECTOR_OTLP_GRPC_PORT:-4317}:4317"
+      - "${OTEL_COLLECTOR_PROM_PORT:-8889}:8889"
+    depends_on:
+      - tempo
+      - loki
+
+  # Log store (OTLP via otel-collector; Nest stdout is console-only).
+  loki:
+    image: grafana/loki:3.4.2
+    command: ["-config.file=/etc/loki/loki-config.yml"]
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - ./loki/data:/loki
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+
+  # Unified UI: Loki logs + Tempo traces + Prometheus metrics.
+  grafana:
+    image: grafana/grafana:11.5.2
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_DEFAULT_THEME: dark
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3003}
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/data:/var/lib/grafana
+    ports:
+      - "${GRAFANA_PORT:-3003}:3000"
+    depends_on:
+      - loki
+      - tempo
+      - otel-collector
+      - prometheus
+
+  # Metrics store (scrapes Collector :8889 + infra exporters).
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    depends_on:
+      - otel-collector
