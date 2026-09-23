@@ -41,3 +41,26 @@ async def test_list_rooms(client):
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 2
+
+async def test_reserve_room(client):
+    hotel = await client.post(
+        "/hotels",
+        json={"name": "Hilton", "city": "Kyiv", "address": "Khreshchatyk 1"}
+    )
+    hotel_id = hotel.json()["id"]
+    room = await client.post(
+        f"hotels/{hotel_id}/rooms",
+        json={"number": "101", "room_type": "double", "price_per_night": 1500}
+    )
+    room_id = room.json()["id"]
+    first_reserve = await client.post(
+        f"rooms/{room_id}/reserve"
+    )
+    assert first_reserve.status_code == 200
+    assert first_reserve.json()["is_available"] is False
+
+    second_reserve = await client.post(
+        f"rooms/{room_id}/reserve"
+    )
+
+    assert second_reserve.status_code == 409
