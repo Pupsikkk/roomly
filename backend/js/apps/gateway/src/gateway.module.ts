@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
+import { HotelHttpModule } from '@roomly/clients/hotel';
 import { UserGrpcModule } from '@roomly/clients/user/grpc';
 import {
   createRoomlyLoggerModule,
@@ -14,6 +15,8 @@ import {
 import { RedisClientService, RedisModule } from '@roomly/infra';
 import { AuthController } from './auth/auth.controller';
 import { AuthModule } from './auth/auth.module';
+import { HotelsController } from './hotel/hotels.controller';
+import { RoomsController } from './hotel/rooms.controller';
 import { UsersController } from './user/users.controller';
 
 @Module({
@@ -25,6 +28,7 @@ import { UsersController } from './user/users.controller';
     HealthModule,
     AuthModule,
     UserGrpcModule,
+    HotelHttpModule,
     RedisModule.forRoot({
       isGlobal: true,
       keyPrefix: 'gateway:',
@@ -50,7 +54,12 @@ import { UsersController } from './user/users.controller';
       }),
     }),
   ],
-  controllers: [UsersController, AuthController],
+  controllers: [
+    UsersController,
+    AuthController,
+    HotelsController,
+    RoomsController,
+  ],
   providers: [
     {
       provide: APP_INTERCEPTOR,

@@ -32,6 +32,7 @@ const COMPOSE_LOADTEST_FILE = path.join(COMPOSE_DIR, 'docker-compose.loadtest.ym
 const SERVICES_CONF = path.join(COMPOSE_DIR, 'services.conf');
 
 const JS_SERVICES = ['gateway', 'user-service', 'notification-service'];
+const PYTHON_SERVICES = ['hotel-service'];
 const CORE_INFRA_SERVICES = ['postgres', 'redis', 'rabbitmq'];
 const OBS_CORE_SERVICES = [
   'tempo',
@@ -48,6 +49,7 @@ const DEFAULT_SCALE = {
   gateway: 1,
   'user-service': 1,
   'notification-service': 1,
+  'hotel-service': 1,
   loadtest: 0,
 };
 
@@ -57,6 +59,7 @@ const HOST_PORT_SERVICES = new Set([
   'redis',
   'rabbitmq',
   'gateway-lb',
+  'hotel-service',
   'tempo',
   'otel-collector',
   'loki',
@@ -157,6 +160,10 @@ function planFromConf(scale) {
     add(name, scale[name] ?? 0);
   }
 
+  for (const name of PYTHON_SERVICES) {
+    add(name, scale[name] ?? 0);
+  }
+
   // Single host entrypoint in front of gateway replica(s).
   if ((scale.gateway ?? 0) > 0) {
     add('gateway-lb', 1);
@@ -207,6 +214,10 @@ function needsGatewayImage(services) {
       s,
     ),
   );
+}
+
+function needsHotelImage(services) {
+  return services.includes('hotel-service');
 }
 
 /** Always merge base + obs; optionally add more overlays (e.g. dev). */
@@ -271,6 +282,9 @@ function cmdUp() {
   if (needsGatewayImage(services)) {
     dockerCompose([], 'build', 'gateway');
   }
+  if (needsHotelImage(services)) {
+    dockerCompose([], 'build', 'hotel-service');
+  }
   const longRunning = services.filter((s) => s !== 'loadtest');
   dockerCompose(
     [],
@@ -291,6 +305,11 @@ function cmdUp() {
   if (services.includes('gateway')) {
     console.log(`  Gateway:       http://localhost:${env('GATEWAY_PORT', '3000')}`);
     console.log(`  Swagger:       http://localhost:${env('GATEWAY_PORT', '3000')}/docs`);
+  }
+  if (services.includes('hotel-service')) {
+    console.log(
+      `  Hotel API:     http://localhost:${env('HOTEL_SERVICE_PORT', '8000')}/docs`,
+    );
   }
   if (services.includes('rabbitmq')) {
     console.log(`  RabbitMQ UI:   http://localhost:${env('RABBITMQ_MGMT_PORT', '15672')}`);
@@ -315,6 +334,9 @@ function cmdDev() {
 
   if (needsGatewayImage(services)) {
     dockerCompose([COMPOSE_DEV_FILE], 'build', 'gateway');
+  }
+  if (needsHotelImage(services)) {
+    dockerCompose([COMPOSE_DEV_FILE], 'build', 'hotel-service');
   }
   if (detached.length) {
     dockerCompose(
@@ -380,7 +402,7 @@ function cmdDown(extra = []) {
 
 function cmdBuild() {
   ensureEnv();
-  dockerCompose([], 'build', 'gateway');
+  dockerCompose([], 'build', 'gateway', 'hotel-service');
 }
 
 function cmdLogs(services = []) {
@@ -403,7 +425,7 @@ function cmdHelp() {
   npm run obs         force observability stack
   npm run loadtest    k6 load test against gateway-lb (one-shot)
   npm run down        stop all services
-  npm run build:apps  rebuild Nest image (gateway)
+  npm run build:apps  rebuild Nest + hotel images
   npm run logs        follow logs (optional: npm run logs -- gateway)
   npm run ps          show running containers
   npm run roomly -- help

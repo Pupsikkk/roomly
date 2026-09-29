@@ -84,6 +84,26 @@ services:
         condition: service_started
     command: ["npm", "run", "start:dev:notification"]
 
+  hotel-service:
+    build:
+      context: ../backend/python/hotel-service
+      dockerfile: Dockerfile.dev
+    image: roomly-hotel:dev
+    env_file: ./secrets/.env
+    environment:
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER:-roomly}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-roomly}
+      HOTEL_DB_NAME: ${HOTEL_DB_NAME:-hotel_db}
+      HOTEL_SERVICE_PORT: ${HOTEL_SERVICE_PORT:-8000}
+      HOTEL_RELOAD: "1"
+    volumes:
+      - ../backend/python/hotel-service:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   gateway_node_modules:
   user_node_modules:
