@@ -31,8 +31,13 @@ const COMPOSE_DEV_FILE = path.join(COMPOSE_DIR, 'docker-compose.dev.yml');
 const COMPOSE_LOADTEST_FILE = path.join(COMPOSE_DIR, 'docker-compose.loadtest.yml');
 const SERVICES_CONF = path.join(COMPOSE_DIR, 'services.conf');
 
-const JS_SERVICES = ['gateway', 'user-service', 'notification-service'];
-const CORE_INFRA_SERVICES = ['postgres', 'redis', 'rabbitmq'];
+const JS_SERVICES = [
+  'gateway',
+  'user-service',
+  'notification-service',
+  'media-service',
+];
+const CORE_INFRA_SERVICES = ['postgres', 'redis', 'rabbitmq', 's3mock'];
 const OBS_CORE_SERVICES = [
   'tempo',
   'otel-collector',
@@ -45,9 +50,11 @@ const DEFAULT_SCALE = {
   postgres: 1,
   redis: 1,
   rabbitmq: 1,
+  s3mock: 1,
   gateway: 1,
   'user-service': 1,
   'notification-service': 1,
+  'media-service': 1,
   loadtest: 0,
 };
 
@@ -166,6 +173,10 @@ function planFromConf(scale) {
     add('user-migrate', 1);
   }
 
+  if ((scale['media-service'] ?? 0) > 0) {
+    add('media-migrate', 1);
+  }
+
   // One-shot k6 against gateway-lb (exits when DURATION ends).
   // loadtest=1 → on; loadtest=N (N>1) → on + default VUs=N (unless LOADTEST_VUS set).
   const loadtestN = scale.loadtest ?? 0;
@@ -203,9 +214,14 @@ function printPlan(services, counts, warnings) {
 
 function needsGatewayImage(services) {
   return services.some((s) =>
-    ['gateway', 'user-service', 'notification-service', 'user-migrate'].includes(
-      s,
-    ),
+    [
+      'gateway',
+      'user-service',
+      'notification-service',
+      'media-service',
+      'user-migrate',
+      'media-migrate',
+    ].includes(s),
   );
 }
 
@@ -351,8 +367,9 @@ function cmdDev() {
 function cmdInfra() {
   ensureEnv();
   dockerCompose([], 'up', '-d', ...CORE_INFRA_SERVICES);
-  console.log('Core infrastructure is up (postgres, redis, rabbitmq)');
+  console.log('Core infrastructure is up (postgres, redis, rabbitmq, s3mock)');
   console.log(`  RabbitMQ UI: http://localhost:${env('RABBITMQ_MGMT_PORT', '15672')}`);
+  console.log('  S3Mock:       internal (http://s3mock:9090) — files via gateway /media');
 }
 
 function cmdObs() {
@@ -399,7 +416,7 @@ function cmdHelp() {
   npm run up          start from infra/docker/services.conf (detached, prod)
   npm run dev         same profile + Nest watch
   npm run auth:keys   generate local JWT RSA private key (once; skip if exists)
-  npm run infra       force postgres, redis, rabbitmq
+  npm run infra       force postgres, redis, rabbitmq, s3mock
   npm run obs         force observability stack
   npm run loadtest    k6 load test against gateway-lb (one-shot)
   npm run down        stop all services

@@ -84,7 +84,48 @@ services:
         condition: service_started
     command: ["npm", "run", "start:dev:notification"]
 
+  media-migrate:
+    image: roomly-js:dev
+    pull_policy: never
+    env_file: ./secrets/.env
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+    volumes:
+      - ../backend/js:/app
+      - media_node_modules:/app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      gateway:
+        condition: service_started
+    command: ["npm", "run", "migration:run:media"]
+    restart: "no"
+
+  media-service:
+    image: roomly-js:dev
+    pull_policy: never
+    env_file: ./secrets/.env
+    environment:
+      APP: media-service
+      PORT: ${MEDIA_SERVICE_PORT:-3004}
+      NODE_ENV: ${NODE_ENV:-development}
+      OTEL_SERVICE_NAME: media-service
+    expose:
+      - "${MEDIA_SERVICE_PORT:-3004}"
+    volumes:
+      - ../backend/js:/app
+      - media_node_modules:/app/node_modules
+    depends_on:
+      gateway:
+        condition: service_started
+      media-migrate:
+        condition: service_completed_successfully
+      s3mock:
+        condition: service_healthy
+    command: ["npm", "run", "start:dev:media"]
+
 volumes:
   gateway_node_modules:
   user_node_modules:
   notification_node_modules:
+  media_node_modules:

@@ -51,6 +51,27 @@ services:
       timeout: 5s
       retries: 10
 
+  # Object storage (S3 API). MinIO Hub images are gone — Adobe S3Mock for local/KPI.
+  # Not published to host; clients use gateway POST/GET /media.
+  s3mock:
+    image: adobe/s3mock:3.12.0
+    environment:
+      # StoreProperties prefix is com.adobe.testing.s3mock.domain (not .store).
+      # Bare `root` overrides the image default ENV root=/s3mockroot.
+      root: /data
+      COM_ADOBE_TESTING_S3MOCK_DOMAIN_RETAIN_FILES_ON_EXIT: "true"
+      COM_ADOBE_TESTING_S3MOCK_DOMAIN_INITIAL_BUCKETS: ${S3_BUCKET:-roomly-media}
+    volumes:
+      - ./s3mock/data:/data
+    expose:
+      - "9090"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9090/favicon.ico"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
   gateway:
     build:
       context: ../backend/js
@@ -75,6 +96,8 @@ services:
       redis:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      s3mock:
         condition: service_healthy
 
   # Single published entrypoint → round-robin across gateway replicas.
@@ -145,4 +168,39 @@ services:
       gateway:
         condition: service_started
       rabbitmq:
+        condition: service_healthy
+
+  media-migrate:
+    image: roomly-js:local
+    pull_policy: never
+    env_file: ./secrets/.env
+    environment:
+      APP: media-migrate
+      NODE_ENV: ${NODE_ENV:-production}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      gateway:
+        condition: service_started
+    restart: "no"
+
+  media-service:
+    image: roomly-js:local
+    pull_policy: never
+    env_file: ./secrets/.env
+    environment:
+      APP: media-service
+      PORT: ${MEDIA_SERVICE_PORT:-3004}
+      NODE_ENV: ${NODE_ENV:-production}
+      OTEL_SERVICE_NAME: media-service
+    expose:
+      - "${MEDIA_SERVICE_PORT:-3004}"
+    depends_on:
+      gateway:
+        condition: service_started
+      media-migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      s3mock:
         condition: service_healthy

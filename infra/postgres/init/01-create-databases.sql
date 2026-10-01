@@ -2,3 +2,4 @@
 CREATE DATABASE user_db;
 CREATE DATABASE hotel_db;
 CREATE DATABASE booking_db;
+CREATE DATABASE media_db;

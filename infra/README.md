@@ -3,7 +3,7 @@
 ```text
 infra/
   docker/
-    docker-compose.yml       # postgres, redis, rabbitmq + Nest apps
+    docker-compose.yml       # postgres, redis, rabbitmq, s3mock + Nest apps
     docker-compose.obs.yml   # Tempo, Loki, Collector, Prometheus, Grafana + exporters
     docker-compose.dev.yml   # Nest hot-reload overlay
     services.conf            # 0=off, N=replicas (used by npm run up / dev)
@@ -15,6 +15,7 @@ infra/
     data/          # bind mount; DB files in data/pgdata/
   redis/data/
   rabbitmq/data/
+  s3mock/data/     # object storage via Adobe S3Mock (files via gateway /media)
   loki/            # config + data/ (OTLP ingest from otel-collector)
   prometheus/      # scrape Collector :8889 + infra exporters + data/
   tempo/           # trace store (OTLP from collector; UI via Grafana)
@@ -44,7 +45,7 @@ Run from repo root:
 ```bash
 npm run up          # core + obs + apps
 npm run dev         # same + Nest watch
-npm run infra       # postgres / redis / rabbitmq
+npm run infra       # postgres / redis / rabbitmq / s3mock
 npm run obs         # observability stack only
 ```
 
@@ -54,6 +55,8 @@ Or directly:
 docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.obs.yml \
   --env-file infra/secrets/.env --project-directory infra up -d
 ```
+
+Media (Adobe S3Mock): S3-compatible store; files go through the gateway (`POST/GET /media`). S3Mock is not published to the host. (MinIO Docker Hub images were removed in 2026.)
 
 ### Observability (local)
 

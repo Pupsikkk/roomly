@@ -3,6 +3,7 @@ export const DEFAULT_PORTS = {
   gateway: 3000,
   user: 3001,
   notification: 3002,
+  media: 3004,
 } as const;
 
 /** @deprecated use RoomlyConfigService.resolveServicePort() */

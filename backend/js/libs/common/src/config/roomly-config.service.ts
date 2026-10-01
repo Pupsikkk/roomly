@@ -8,6 +8,7 @@ import type {
   PostgresConfig,
   RabbitmqConfig,
   RedisConfig,
+  S3Config,
   ServicesConfig,
 } from './configuration';
 
@@ -66,6 +67,11 @@ export class RoomlyConfigService {
     return this.config.getOrThrow<GatewayConfig>('gateway');
   }
 
+  /** Loaded only if `load` includes `'s3'` */
+  get s3(): S3Config {
+    return this.config.getOrThrow<S3Config>('s3');
+  }
+
   /** Compose `PORT` wins over service-specific env (for Docker). */
   get port() {
     return {
@@ -75,6 +81,7 @@ export class RoomlyConfigService {
         'notification',
         'NOTIFICATION_SERVICE_PORT',
       ),
+      media: this.resolveServicePort('media', 'MEDIA_SERVICE_PORT'),
     };
   }
 

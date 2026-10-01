@@ -12,5 +12,7 @@ export function resolvePostgresDatabaseName(
       return pg.hotelDbName;
     case 'booking':
       return pg.bookingDbName;
+    case 'media':
+      return pg.mediaDbName;
   }
 }

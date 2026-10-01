@@ -15,7 +15,8 @@
     "declaration": false
   },
   "include": [
-    "apps/user-service/src/adapters/outbound/persistence/typeorm/**/*.ts"
+    "apps/user-service/src/adapters/outbound/persistence/typeorm/**/*.ts",
+    "apps/media-service/src/adapters/outbound/persistence/typeorm/**/*.ts"
   ],
   "ts-node": {
     "transpileOnly": true,

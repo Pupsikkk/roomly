@@ -1,7 +1,7 @@
 # Production image for the NestJS monorepo.
 # Runtime config (APP, PORT, secrets) comes from compose / `docker run -e`, not from this file.
 #
-#   APP=gateway | user-service | notification-service | user-migrate
+#   APP=gateway | user-service | notification-service | media-service | user-migrate | media-migrate
 #   docker run -e APP=gateway -e PORT=3000 -p 3000:3000 roomly-js
 
 FROM node:22-alpine AS deps

@@ -7,7 +7,7 @@ import type { PostgresDatabase } from './tokens';
 import { buildTypeOrmPostgresOptions } from './typeorm-options';
 
 export interface RoomlyTypeOrmModuleOptions {
-  /** Logical DB from RoomlyConfigService.postgres (user | hotel | booking) */
+  /** Logical DB from RoomlyConfigService.postgres (user | hotel | booking | media) */
   database: PostgresDatabase;
   entities: EntityClassOrSchema[];
   isGlobal?: boolean;

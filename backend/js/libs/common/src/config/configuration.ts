@@ -10,6 +10,7 @@ export interface PostgresConfig {
   userDbName: string;
   hotelDbName: string;
   bookingDbName: string;
+  mediaDbName: string;
 }
 
 export interface RedisConfig {
@@ -28,6 +29,7 @@ export interface ServicesConfig {
   gatewayPort: number;
   userPort: number;
   notificationPort: number;
+  mediaPort: number;
   gatewayUrl: string;
   userServiceUrl: string;
   /** Host:port for Nest gRPC clients (gateway → user-service). */
@@ -35,6 +37,7 @@ export interface ServicesConfig {
   /** Bind port for user-service gRPC server (0.0.0.0:port). */
   userServiceGrpcPort: number;
   notificationServiceUrl: string;
+  mediaServiceUrl: string;
   hotelServiceUrl: string;
   bookingServiceUrl: string;
 }
@@ -82,6 +85,17 @@ export interface GatewayConfig {
   cookieSameSite: 'lax' | 'strict' | 'none';
 }
 
+/** S3-compatible object storage (local: Adobe S3Mock). */
+export interface S3Config {
+  /** e.g. http://s3mock:9090 (Docker) or http://localhost:9090 */
+  endpoint: string;
+  accessKey: string;
+  secretKey: string;
+  bucket: string;
+  /** Max multipart upload size in bytes */
+  maxBytes: number;
+}
+
 export const postgresConfig = registerAs(
   'postgres',
   (): PostgresConfig => ({
@@ -92,6 +106,7 @@ export const postgresConfig = registerAs(
     userDbName: env('USER_DB_NAME', 'user_db'),
     hotelDbName: env('HOTEL_DB_NAME', 'hotel_db'),
     bookingDbName: env('BOOKING_DB_NAME', 'booking_db'),
+    mediaDbName: env('MEDIA_DB_NAME', 'media_db'),
   }),
 );
 
@@ -124,6 +139,7 @@ export const servicesConfig = registerAs(
         'NOTIFICATION_SERVICE_PORT',
         DEFAULT_PORTS.notification,
       ),
+      mediaPort: envInt('MEDIA_SERVICE_PORT', DEFAULT_PORTS.media),
       gatewayUrl: env(
         'GATEWAY_URL',
         `http://localhost:${DEFAULT_PORTS.gateway}`,
@@ -140,6 +156,10 @@ export const servicesConfig = registerAs(
       notificationServiceUrl: env(
         'NOTIFICATION_SERVICE_URL',
         `http://localhost:${DEFAULT_PORTS.notification}`,
+      ),
+      mediaServiceUrl: env(
+        'MEDIA_SERVICE_URL',
+        `http://localhost:${DEFAULT_PORTS.media}`,
       ),
       hotelServiceUrl: env('HOTEL_SERVICE_URL', 'http://localhost:8000'),
       bookingServiceUrl: env('BOOKING_SERVICE_URL', 'http://localhost:8001'),
@@ -184,6 +204,17 @@ export const gatewayConfig = registerAs(
   }),
 );
 
+export const s3Config = registerAs(
+  's3',
+  (): S3Config => ({
+    endpoint: env('S3_ENDPOINT', 'http://localhost:9090'),
+    accessKey: env('S3_ACCESS_KEY', 'roomly'),
+    secretKey: env('S3_SECRET_KEY', 'roomlyroomly'),
+    bucket: env('S3_BUCKET', 'roomly-media'),
+    maxBytes: envInt('MEDIA_MAX_BYTES', 5 * 1024 * 1024),
+  }),
+);
+
 function parseSameSite(value: string): 'lax' | 'strict' | 'none' {
   const normalized = value.trim().toLowerCase();
   if (normalized === 'strict' || normalized === 'none' || normalized === 'lax') {
@@ -201,6 +232,7 @@ export const CONFIG_NAMESPACES = {
   auth: authConfig,
   authSigning: authSigningConfig,
   gateway: gatewayConfig,
+  s3: s3Config,
 } as const;
 
 export type ConfigNamespace = keyof typeof CONFIG_NAMESPACES;

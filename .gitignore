@@ -9,6 +9,8 @@ infra/redis/data/**
 !infra/redis/data/.gitkeep
 infra/rabbitmq/data/**
 !infra/rabbitmq/data/.gitkeep
+infra/s3mock/data/**
+!infra/s3mock/.gitkeep
 infra/loki/data/**
 !infra/loki/data/.gitkeep
 infra/grafana/data/**
