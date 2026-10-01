@@ -218,6 +218,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-roomly}
       HOTEL_DB_NAME: ${HOTEL_DB_NAME:-hotel_db}
       HOTEL_SERVICE_PORT: ${HOTEL_SERVICE_PORT:-8000}
+      OTEL_SERVICE_NAME: hotel-service
     expose:
       - "${HOTEL_SERVICE_PORT:-8000}"
     # Optional host access for Swagger while wiring gateway
@@ -253,6 +254,7 @@ services:
       BOOKING_DB_NAME: ${BOOKING_DB_NAME:-booking_db}
       BOOKING_SERVICE_PORT: ${BOOKING_SERVICE_PORT:-8001}
       HOTEL_SERVICE_URL: ${HOTEL_SERVICE_URL:-http://hotel-service:8000}
+      OTEL_SERVICE_NAME: booking-service
     expose:
       - "${BOOKING_SERVICE_PORT:-8001}"
     ports:

@@ -137,6 +137,7 @@ services:
       HOTEL_DB_NAME: ${HOTEL_DB_NAME:-hotel_db}
       HOTEL_SERVICE_PORT: ${HOTEL_SERVICE_PORT:-8000}
       HOTEL_RELOAD: "1"
+      OTEL_SERVICE_NAME: hotel-service
     volumes:
       - ../backend/python/hotel-service:/app
     depends_on:
@@ -158,6 +159,7 @@ services:
       BOOKING_SERVICE_PORT: ${BOOKING_SERVICE_PORT:-8001}
       HOTEL_SERVICE_URL: ${HOTEL_SERVICE_URL:-http://hotel-service:8000}
       BOOKING_RELOAD: "1"
+      OTEL_SERVICE_NAME: booking-service
     volumes:
       - ../backend/python/booking-service:/app
     depends_on:

@@ -70,9 +70,11 @@ Media (Adobe S3Mock): S3-compatible store; files go through the gateway (`POST/G
 
 Flow:
 - Logs: Nest OTLP logs → **OTEL Collector** → **Loki** → Grafana (`compose_service` from `service.name`; `collector.name=roomly-otel-collector`). Stdout remains for `docker compose logs` only.
-- Traces: Nest OTLP → **OTEL Collector** → **Tempo** → Grafana (Trace to logs / Trace to metrics)
+- Traces: Nest + Python (hotel/booking) OTLP → **OTEL Collector** → **Tempo** → Grafana (Trace to logs / Trace to metrics)
 - App metrics: Nest OTLP → **OTEL Collector** (`:8889`) → **Prometheus** → Grafana
 - Infra metrics: **redis_exporter** / **postgres_exporter** / RabbitMQ prometheus plugin → Prometheus → community dashboards
+
+Python hotel/booking OTel is optional (`app/otel.py`): traces + stdlib logs (OTLP→Loki) + system/process metrics. Same env gates as Nest (`OTEL_LOGS_EXPORTER`, `OTEL_METRICS_DISABLED`). No `depends_on` collector; if endpoint unset, SDK disabled, packages missing, or collector down — services still boot.
 
 **OTel vs community dashboards:** Nest OTel (`http_server_*`, `v8js_*`, runtime) powers **Roomly Nest (OTel)**. Redis/Postgres/RabbitMQ community dashboards need their exporters (`redis_*`, `pg_*`, `rabbitmq_*`). Same Prometheus scrapes all.
 
