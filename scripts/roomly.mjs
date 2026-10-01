@@ -37,7 +37,7 @@ const JS_SERVICES = [
   'notification-service',
   'media-service',
 ];
-const PYTHON_SERVICES = ['hotel-service'];
+const PYTHON_SERVICES = ['hotel-service', 'booking-service'];
 const CORE_INFRA_SERVICES = ['postgres', 'redis', 'rabbitmq', 's3mock'];
 const OBS_CORE_SERVICES = [
   'tempo',
@@ -57,6 +57,7 @@ const DEFAULT_SCALE = {
   'notification-service': 1,
   'media-service': 1,
   'hotel-service': 1,
+  'booking-service': 1,
   loadtest: 0,
 };
 
@@ -67,6 +68,7 @@ const HOST_PORT_SERVICES = new Set([
   'rabbitmq',
   'gateway-lb',
   'hotel-service',
+  'booking-service',
   'tempo',
   'otel-collector',
   'loki',
@@ -232,8 +234,8 @@ function needsGatewayImage(services) {
   );
 }
 
-function needsHotelImage(services) {
-  return services.includes('hotel-service');
+function needsPythonImages(services) {
+  return PYTHON_SERVICES.filter((name) => services.includes(name));
 }
 
 /** Always merge base + obs; optionally add more overlays (e.g. dev). */
@@ -298,8 +300,9 @@ function cmdUp() {
   if (needsGatewayImage(services)) {
     dockerCompose([], 'build', 'gateway');
   }
-  if (needsHotelImage(services)) {
-    dockerCompose([], 'build', 'hotel-service');
+  const pythonToBuild = needsPythonImages(services);
+  if (pythonToBuild.length) {
+    dockerCompose([], 'build', ...pythonToBuild);
   }
   const longRunning = services.filter((s) => s !== 'loadtest');
   dockerCompose(
@@ -327,6 +330,11 @@ function cmdUp() {
       `  Hotel API:     http://localhost:${env('HOTEL_SERVICE_PORT', '8000')}/docs`,
     );
   }
+  if (services.includes('booking-service')) {
+    console.log(
+      `  Booking API:   http://localhost:${env('BOOKING_SERVICE_PORT', '8001')}/docs`,
+    );
+  }
   if (services.includes('rabbitmq')) {
     console.log(`  RabbitMQ UI:   http://localhost:${env('RABBITMQ_MGMT_PORT', '15672')}`);
   }
@@ -351,8 +359,9 @@ function cmdDev() {
   if (needsGatewayImage(services)) {
     dockerCompose([COMPOSE_DEV_FILE], 'build', 'gateway');
   }
-  if (needsHotelImage(services)) {
-    dockerCompose([COMPOSE_DEV_FILE], 'build', 'hotel-service');
+  const pythonToBuild = needsPythonImages(services);
+  if (pythonToBuild.length) {
+    dockerCompose([COMPOSE_DEV_FILE], 'build', ...pythonToBuild);
   }
   if (detached.length) {
     dockerCompose(
@@ -419,7 +428,7 @@ function cmdDown(extra = []) {
 
 function cmdBuild() {
   ensureEnv();
-  dockerCompose([], 'build', 'gateway', 'hotel-service');
+  dockerCompose([], 'build', 'gateway', ...PYTHON_SERVICES);
 }
 
 function cmdLogs(services = []) {
@@ -442,7 +451,7 @@ function cmdHelp() {
   npm run obs         force observability stack
   npm run loadtest    k6 load test against gateway-lb (one-shot)
   npm run down        stop all services
-  npm run build:apps  rebuild Nest + hotel images
+  npm run build:apps  rebuild Nest + Python service images
   npm run logs        follow logs (optional: npm run logs -- gateway)
   npm run ps          show running containers
   npm run roomly -- help

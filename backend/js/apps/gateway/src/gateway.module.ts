@@ -3,6 +3,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { MediaHttpModule } from '@roomly/clients/media/http';
+import { BookingHttpModule } from '@roomly/clients/booking';
 import { HotelHttpModule } from '@roomly/clients/hotel';
 import { UserGrpcModule } from '@roomly/clients/user/grpc';
 import {
@@ -16,6 +17,7 @@ import {
 import { RedisClientService, RedisModule } from '@roomly/infra';
 import { AuthController } from './auth/auth.controller';
 import { AuthModule } from './auth/auth.module';
+import { BookingsController } from './booking/bookings.controller';
 import { MediaController } from './media/media.controller';
 import { HotelsController } from './hotel/hotels.controller';
 import { RoomsController } from './hotel/rooms.controller';
@@ -32,6 +34,7 @@ import { UsersController } from './user/users.controller';
     UserGrpcModule,
     MediaHttpModule,
     HotelHttpModule,
+    BookingHttpModule,
     RedisModule.forRoot({
       isGlobal: true,
       keyPrefix: 'gateway:',
@@ -62,6 +65,7 @@ import { UsersController } from './user/users.controller';
     AuthController,
     HotelsController,
     RoomsController,
+    BookingsController,
     MediaController,
   ],
   providers: [

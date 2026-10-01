@@ -204,6 +204,7 @@ services:
         condition: service_healthy
       s3mock:
         condition: service_healthy
+
   hotel-service:
     build:
       context: ../backend/python/hotel-service
@@ -236,4 +237,40 @@ services:
       start_period: 20s
     depends_on:
       postgres:
+        condition: service_healthy
+
+  booking-service:
+    build:
+      context: ../backend/python/booking-service
+      dockerfile: Dockerfile
+    image: roomly-booking:local
+    env_file: ./secrets/.env
+    environment:
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER:-roomly}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-roomly}
+      BOOKING_DB_NAME: ${BOOKING_DB_NAME:-booking_db}
+      BOOKING_SERVICE_PORT: ${BOOKING_SERVICE_PORT:-8001}
+      HOTEL_SERVICE_URL: ${HOTEL_SERVICE_URL:-http://hotel-service:8000}
+    expose:
+      - "${BOOKING_SERVICE_PORT:-8001}"
+    ports:
+      - "${BOOKING_SERVICE_PORT:-8001}:${BOOKING_SERVICE_PORT:-8001}"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:${BOOKING_SERVICE_PORT:-8001}/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      hotel-service:
         condition: service_healthy

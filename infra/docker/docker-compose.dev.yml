@@ -143,6 +143,29 @@ services:
       postgres:
         condition: service_healthy
 
+  booking-service:
+    build:
+      context: ../backend/python/booking-service
+      dockerfile: Dockerfile.dev
+    image: roomly-booking:dev
+    env_file: ./secrets/.env
+    environment:
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER:-roomly}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-roomly}
+      BOOKING_DB_NAME: ${BOOKING_DB_NAME:-booking_db}
+      BOOKING_SERVICE_PORT: ${BOOKING_SERVICE_PORT:-8001}
+      HOTEL_SERVICE_URL: ${HOTEL_SERVICE_URL:-http://hotel-service:8000}
+      BOOKING_RELOAD: "1"
+    volumes:
+      - ../backend/python/booking-service:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      hotel-service:
+        condition: service_started
+
 volumes:
   gateway_node_modules:
   user_node_modules:

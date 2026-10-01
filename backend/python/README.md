@@ -19,3 +19,9 @@ npm run dev         # bind-mount + --reload
 ```
 
 Swagger: http://localhost:8000/docs · health: `/health`
+
+## booking-service
+
+Увімкнено в `infra/docker/services.conf` (`booking-service=1`). Залежить від `hotel-service`.
+
+Swagger: http://localhost:8001/docs · health: `/health`
