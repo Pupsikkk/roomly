@@ -204,3 +204,36 @@ services:
         condition: service_healthy
       s3mock:
         condition: service_healthy
+  hotel-service:
+    build:
+      context: ../backend/python/hotel-service
+      dockerfile: Dockerfile
+    image: roomly-hotel:local
+    env_file: ./secrets/.env
+    environment:
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER:-roomly}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-roomly}
+      HOTEL_DB_NAME: ${HOTEL_DB_NAME:-hotel_db}
+      HOTEL_SERVICE_PORT: ${HOTEL_SERVICE_PORT:-8000}
+    expose:
+      - "${HOTEL_SERVICE_PORT:-8000}"
+    # Optional host access for Swagger while wiring gateway
+    ports:
+      - "${HOTEL_SERVICE_PORT:-8000}:${HOTEL_SERVICE_PORT:-8000}"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:${HOTEL_SERVICE_PORT:-8000}/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    depends_on:
+      postgres:
+        condition: service_healthy

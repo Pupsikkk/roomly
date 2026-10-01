@@ -1,12 +1,16 @@
-FROM python:3.14-slim
+FROM python:3.14-slim as base
 
 WORKDIR /app
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY alembic.ini ./
+COPY alembic ./alembic
+COPY app ./app
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
